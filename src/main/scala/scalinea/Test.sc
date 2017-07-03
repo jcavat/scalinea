@@ -35,4 +35,4 @@ val b: LpInteger = "b"
 
 //val expr1 = 500*a + 400*b
 val expr2 = 400+a;
-val expr3: LpExpression = 400+a;
+val expr3: LpExpression = 400;
