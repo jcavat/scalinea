@@ -20,6 +20,9 @@ class LpExpressionTest extends FunSuite {
     assert( (a * 2 + 2* b).toString equals "2 * a + 2 * b")
     assert( (200 + a * 2 - 120 + 2 * b + 20).toString equals "100 + 2 * a + 2 * b")
 
+    assert( (100 + 2*(a+200)).toString equals "500 + 2 * a")
+    assert( (-100 - 2*(a+200)).toString equals "-500 + 2 * a")
+
   }
 
 
