@@ -13,12 +13,17 @@ object Main {
     val a: LpInteger = "a"
     val b = "b".toLpInteger
 
+    println(b)
+    println(-200 - 300 - a + 900)
+    println(a + 200+ b + 400 + 2*b + 100 + a + 100)
+    println(a - 100 + b + 200 - a - 200 + 2*a*b + 100)
+println( 2 * a * (2+a) * b * 5)
+  println(200 + a * 2 - 120 + 2 * b + 20 - 40 + 2*b)
+    /*
+    println(300 - 200 - a - 500)
+    println(-a)
+    */
 
 
-    //val expr1 = 500*a + 400*b
-    val expr1: LpExpression = 300
-    val expr1bis = 200 - expr1
-    val expr2 = 300 + 400 + a + 200 + a
-    println(expr2)
   }
 }
