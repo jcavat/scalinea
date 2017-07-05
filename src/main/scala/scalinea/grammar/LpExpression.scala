@@ -38,20 +38,26 @@ sealed trait LpExpression {
     case MulExpr(LitVal(l1), LitVal(l2)) => LitVal(l1*l2).simplify()
 
     // +- rules
-    case AddExpr(l, MinUnaryExpr(r)) => MinExpr(l, r).simplify()
+//    case AddExpr(l, MinUnaryExpr(r)) => MinExpr(l, r).simplify()
     case MinExpr(l, MinUnaryExpr(r)) => AddExpr(l, r).simplify()
     case MinUnaryExpr(MinUnaryExpr(l)) => l.simplify()
-
-    // trivial rules
-    case MinUnaryExpr(LitVal(v)) => LitVal(-v).simplify()
-    case AddExpr(LitVal(0), expr) => expr
-    case MulExpr(LitVal(0), expr) => LitVal(0)
-    case MinExpr(expr, LitVal(0)) => expr
 
     // Place literal first
     case AddExpr(expr, rlit @ LitVal(r)) => AddExpr(rlit, expr).simplify()
     case MinExpr(expr, rlit @ LitVal(r)) => AddExpr(LitVal(-r), expr).simplify()
     case MulExpr(expr, rlit @ LitVal(r)) => MulExpr(rlit, expr).simplify()
+
+      // (a+b)*c = c*(a+b)
+    case MulExpr(AddExpr(a,b), c) => MulExpr(c, AddExpr(a,b)).simplify()
+
+    // trivial rules
+    case MinUnaryExpr(LitVal(v)) => LitVal(-v).simplify()
+    case AddExpr(LitVal(0), expr) => expr.simplify()
+    case MulExpr(LitVal(0), expr) => LitVal(0)
+
+    // Factorization
+    // i*(a+b) = i*a+i*b
+    case MulExpr(expr, AddExpr(a,b)) => AddExpr(MulExpr(expr, a), MulExpr(expr, b)).simplify()
 
     // Associativity +/-
     case AddExpr(LitVal(l1), AddExpr(LitVal(l2), expr)) => AddExpr(LitVal(l1 + l2), expr).simplify()
@@ -61,6 +67,7 @@ sealed trait LpExpression {
 
     // Associativity *
     case MulExpr(LitVal(l1), MulExpr(LitVal(l2), expr)) => MulExpr(LitVal(l1 * l2), expr).simplify()
+    case MulExpr(a, MulExpr(lit: LitVal, expr)) => MulExpr(lit, MulExpr(a,expr)).simplify()
 
     // (a+b) + c = a + (b+c)
     case AddExpr(AddExpr(a,b), c) => AddExpr(a, AddExpr(b, c)).simplify()
@@ -68,11 +75,19 @@ sealed trait LpExpression {
     // (a+b) - c = a + (b-c)
     case MinExpr(AddExpr(a,b), c) => AddExpr(a, MinExpr(b, c)).simplify()
 
+
     // (a*b)*c = a*(b*c)
     case MulExpr(MulExpr(a,b),c) => MulExpr(a, MulExpr(b,c)).simplify()
 
-    // i*(a+b) = i*a+i*b
-    case MulExpr(lit @ LitVal(i), AddExpr(a,b)) => AddExpr(MulExpr(lit, a), MulExpr(lit, b)).simplify()
+    // (a-b)+c = a - (b + c)
+    case AddExpr(MinExpr(a,b),c) => MinExpr(a, AddExpr(b,c)).simplify()
+    // (a-b)-c = a - (b + c)
+    case MinExpr(MinExpr(a,b),c) => MinExpr(a, AddExpr(b,c)).simplify()
+
+    // TODO: a-(b+c) = a-b-c
+    case MinExpr(a, AddExpr(b,c)) => MinExpr(a.simplify(), AddExpr(b.simplify(), MinUnaryExpr(c.simplify())))
+    // TODO: a-(b-c) = a-b+c
+
 
     case MulExpr(a,b) => MulExpr(a.simplify(), b.simplify())
     case AddExpr(a,b) => AddExpr(a.simplify(), b.simplify())
