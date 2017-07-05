@@ -6,7 +6,13 @@ package scalinea.grammar
 
 abstract class LpConstraint(expr: LpExpression, lit: LitVal)
 
-case class GreaterOrEquals(expr: LpExpression, lit: LitVal) extends LpConstraint(expr, lit)
-case class Equals(expr: LpExpression, lit: LitVal) extends LpConstraint(expr, lit)
-case class LessOrEquals(expr: LpExpression, lit: LitVal) extends LpConstraint(expr, lit)
+case class GreaterOrEquals(expr: LpExpression, lit: LitVal) extends LpConstraint(expr, lit) {
+  override def toString: String = expr.toString + " >= " + lit.toString
+}
+case class Equals(expr: LpExpression, lit: LitVal) extends LpConstraint(expr, lit) {
+  override def toString: String = expr.toString + " = " + lit.toString
+}
+case class LessOrEquals(expr: LpExpression, lit: LitVal) extends LpConstraint(expr, lit) {
+  override def toString: String = expr.toString + " <= " + lit.toString
+}
 

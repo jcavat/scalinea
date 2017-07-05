@@ -83,7 +83,6 @@ sealed trait LpExpression {
   }
 
   override def toString: String = {
-    /*
     this match {
       case LpInteger(name) => name
       case LitVal(v) => v.toString
@@ -93,17 +92,18 @@ sealed trait LpExpression {
       case MinUnaryExpr(e) => e.toString
       case s => s.toString
     }
+/*
+this match {
+  case LpInteger(name) => name
+  case LitVal(v) => v.toString
+  case AddExpr(l,r) => l.toString + " + " + r.toString
+  case MulExpr(l,r) => l.toString + " * " + r.toString
+  case MinExpr(l,r) => l.toString + " - " + r.toString
+  case MinUnaryExpr(e) => e.toString
+  case s => s.toString
+}
     */
-    this match {
-      case LpInteger(name) => name
-      case LitVal(v) => v.toString
-      case AddExpr(l,r) => l.toString + " + " + r.toString
-      case MulExpr(l,r) => l.toString + " * " + r.toString
-      case MinExpr(l,r) => l.toString + " - " + r.toString
-      case MinUnaryExpr(e) => e.toString
-      case s => s.toString
-    }
-  }
+}
 }
 
 case class LpInteger(name: String) extends LpExpression
@@ -121,26 +121,26 @@ case class MinUnaryExpr(expr: LpExpression) extends LpExpression
 case class PlusUnaryExpr(expr: LpExpression) extends LpExpression
 
 trait ToLpInteger[A] {
-  def toLpInteger(a: A): LpInteger
+def toLpInteger(a: A): LpInteger
 }
 
 object ToLpInteger {
 
-  implicit object StringToLpInteger extends ToLpInteger[String] {
-    def toLpInteger(a: String): LpInteger = LpInteger(a)
-  }
+implicit object StringToLpInteger extends ToLpInteger[String] {
+def toLpInteger(a: String): LpInteger = LpInteger(a)
+}
 
-  implicit class ToLpUtil[A](x: A) {
-    def toLpInteger(implicit subject: ToLpInteger[A]) = {
-      subject.toLpInteger(x)
-    }
-  }
+implicit class ToLpUtil[A](x: A) {
+def toLpInteger(implicit subject: ToLpInteger[A]) = {
+  subject.toLpInteger(x)
+}
+}
 
 }
 
 object LpExpression {
-  implicit def stringToLpInteger(s: String): LpInteger = LpInteger(s)
+implicit def stringToLpInteger(s: String): LpInteger = LpInteger(s)
 
-  implicit def intToLpInteger(s: Int): LitVal = LitVal(s)
+implicit def intToLpInteger(s: Int): LitVal = LitVal(s)
 }
 

@@ -2,6 +2,7 @@ package scalinea
 
 import scalinea.grammar._
 import scalinea.grammar.ToLpInteger._
+import scalinea.grammar.ToString._
 
 /**
   * Created by joel on 03.07.17.
