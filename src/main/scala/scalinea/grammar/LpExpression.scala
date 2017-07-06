@@ -9,31 +9,48 @@ sealed trait LpExpression {
   def -(that: LpExpression): LpExpression = Sub(this, that)
 
   def <=(that: LpExpression): LpConstraint = {
-    val (Cons(v), expr) = Sub(this, that).simplify().extractConstant()
+    val (Cons(v), expr) = Sub(this, that).simplify.extractConstant()
     LessOrEquals(expr, Cons(-v))
   }
 
   def >=(that: LpExpression): LpConstraint = {
-    val (Cons(v), expr) = Sub(this, that).simplify().extractConstant()
+    val (Cons(v), expr) = Sub(this, that).simplify.extractConstant()
     GreaterOrEquals(expr, Cons(-v))
   }
 
   def ===(that: LpExpression): LpConstraint = {
-    val (Cons(v), expr) = Sub(this, that).simplify().extractConstant()
+    val (Cons(v), expr) = Sub(this, that).simplify.extractConstant()
     Equals(expr, Cons(-v))
   }
 
-  def unary_-(): LpExpression = Minus(this).simplify()
+  def isEquals(that: LpExpression): Boolean = {
+    def eql(l1: LpExpression, l2: LpExpression, acc: Boolean): Boolean = {
+      if(!acc) false
+      (l1, l2) match {
+        case (c1: Cons, c2: Cons) if c1 == c2 => acc
+        case (l1: LpInteger, l2: LpInteger) => l1 == l2
+        case (Add(a,b), Add(c,d)) => eql(a,c,eql(b,d,acc)) || eql(a,d,eql(b,c, acc))
+        case (Mul(a,b), Mul(c,d)) => eql(a,c,eql(b,d,acc)) || eql(a,d,eql(b,c, acc))
+        case (Sub(a,b), Sub(c,d)) => eql(a,c,eql(b,d,acc))
+        case (Minus(m1), Minus(m2)) => eql(m1,m2,acc)
+        case (Add(Minus(a), b), Minus(Sub(c,d))) => eql(a, c, eql(b,d,acc))
+        case _ => false
+      }
+    }
+    eql(this.simplify, that.simplify, true)
+  }
 
-  def unary_+(): LpExpression = this.simplify()
+  def unary_-(): LpExpression = Minus(this).simplify
+
+  def unary_+(): LpExpression = this.simplify
 
   def extractConstant(): (Cons, LpExpression) = this match {
     case Add(expr, lit: Cons) => (lit, expr)
-    case Sub(expr, Cons(v)) => (Cons(-v), expr.simplify())
+    case Sub(expr, Cons(v)) => (Cons(-v), expr.simplify)
     case expr => (Cons(0), expr)
   }
 
-  def simplify(): LpExpression = {
+  lazy val simplify: LpExpression = {
     //println(" * " + this.show())
     def simplify(lpExpression: LpExpression): LpExpression = {
       lpExpression match {
@@ -47,85 +64,85 @@ sealed trait LpExpression {
         case Sub(Cons(l1), Cons(l2)) => Cons(l1 - l2)
 
         // trivial rules
-        case Minus(Cons(v)) => Cons(-v).simplify()
-        case Add(expr, Cons(0)) => expr.simplify()
+        case Minus(Cons(v)) => Cons(-v).simplify
+        case Add(expr, Cons(0)) => expr.simplify
         case Mul(Cons(0), expr) => Cons(0)
 
         // +- UNARY RULES
-        case Sub(l, Minus(r)) => Add(l, r).simplify()
-        case Add(l, Minus(r)) => Sub(l, r).simplify()
-        case Add(l, Cons(r)) if r < 0 => Sub(l, Cons(-r)).simplify()
-        case Minus(Minus(l)) => l.simplify()
+        case Sub(l, Minus(r)) => Add(l, r).simplify
+        case Add(l, Minus(r)) => Sub(l, r).simplify
+        case Add(l, Cons(r)) if r < 0 => Sub(l, Cons(-r)).simplify
+        case Minus(Minus(l)) => l.simplify
 
-        case Minus(Add(a, b)) => Sub(Minus(a), b).simplify() ////////// BBBBBBBBBBBBBBBBBBBB
+        case Minus(Add(a, b)) => Sub(Minus(a), b).simplify
 
         // Place literal first for *
-        case Mul(expr, rlit@Cons(r)) => Mul(rlit, expr).simplify()
+        case Mul(expr, rlit@Cons(r)) => Mul(rlit, expr).simplify
         // (a+b)*c = c*(a+b)
-        case Mul(Add(a, b), c) => Mul(c, Add(a, b)).simplify()
+        case Mul(Add(a, b), c) => Mul(c, Add(a, b)).simplify
 
         // DISTRIBUTIVITY
         // i*(a+b) = i*a+i*b
-        case Mul(expr, Add(a, b)) => Add(Mul(expr, a), Mul(expr, b)).simplify()
+        case Mul(expr, Add(a, b)) => Add(Mul(expr, a), Mul(expr, b)).simplify
         // i*(a-b) = i*a-i*b
-        case Mul(expr, Sub(a, b)) => Sub(Mul(expr, a), Mul(expr, b)).simplify()
+        case Mul(expr, Sub(a, b)) => Sub(Mul(expr, a), Mul(expr, b)).simplify
 
         // Place literal at the end for +/-
-        case Add(c: Cons, expr) => Add(expr, c).simplify()
+        case Add(c: Cons, expr) => Add(expr, c).simplify
         // c-expr = -expr+c
-        case Sub(c: Cons, expr) => Add(Minus(expr), c).simplify() ///// AAAAAAAAAAAAAAAAAAAAAAAAAAA
+        case Sub(c: Cons, expr) => Add(Minus(expr), c).simplify
 
 
         // Accumulate consts +/-
         // (expr+c1)+c2 = expr+(c1+c2)
-        case Add(Add(expr, Cons(l1)), Cons(l2)) => Add(expr, Cons(l1 + l2)).simplify()
+        case Add(Add(expr, Cons(l1)), Cons(l2)) => Add(expr, Cons(l1 + l2)).simplify
         // (expr-c1)+c2 = expr+(c2-c1)
-        case Add(Sub(expr, Cons(l1)), Cons(l2)) => Add(expr, Cons(l2 - l1)).simplify()
+        case Add(Sub(expr, Cons(l1)), Cons(l2)) => Add(expr, Cons(l2 - l1)).simplify
         // (expr-c1)-c2 = expr-(c1+c2)
-        case Sub(Sub(expr, Cons(l1)), Cons(l2)) => Sub(expr, Cons(l1 + l2)).simplify()
+        case Sub(Sub(expr, Cons(l1)), Cons(l2)) => Sub(expr, Cons(l1 + l2)).simplify
         // (expr+c1)-c2 = expr+(c1-c2)
-        case Sub(Add(expr, Cons(l1)), Cons(l2)) => Add(expr, Cons(l1 - l2)).simplify()
+        case Sub(Add(expr, Cons(l1)), Cons(l2)) => Add(expr, Cons(l1 - l2)).simplify
         // (c1-expr)-c2 = -expr+(c1-c2)
-        case Sub(Sub(Cons(c1), expr), Cons(c2)) => Add(Minus(expr), Cons(c1 - c2)).simplify()
+        case Sub(Sub(Cons(c1), expr), Cons(c2)) => Add(Minus(expr), Cons(c1 - c2)).simplify
         // (c1-expr)+c2 = -expr+(c1+c2)
-        case Add(Sub(Cons(c1), expr), Cons(c2)) => Add(Minus(expr), Cons(c1 + c2)).simplify()
+        case Add(Sub(Cons(c1), expr), Cons(c2)) => Add(Minus(expr), Cons(c1 + c2)).simplify
 
         // Extract the const
         // (expr1+c)+expr2 = (expr1+expr2)+c
-        case Add(Add(expr1, c: Cons), expr2) => Add(Add(expr1, expr2), c).simplify()
+        case Add(Add(expr1, c: Cons), expr2) => Add(Add(expr1, expr2), c).simplify
         // (expr1-c)+expr2 = (expr1+expr2)-c
-        case Add(Sub(expr1, c: Cons), expr2) => Sub(Add(expr1, expr2), c).simplify()
+        case Add(Sub(expr1, c: Cons), expr2) => Sub(Add(expr1, expr2), c).simplify
         // (expr1+c)-expr2 = (expr1-expr2)+c
-        case Sub(Add(expr1, c: Cons), expr2) => Add(Sub(expr1, expr2), c).simplify()
+        case Sub(Add(expr1, c: Cons), expr2) => Add(Sub(expr1, expr2), c).simplify
         // (expr1-c)-expr2 = (expr1-expr2)-c
-        case Sub(Sub(expr1, c: Cons), expr2) => Sub(Sub(expr1, expr2), c).simplify()
+        case Sub(Sub(expr1, c: Cons), expr2) => Sub(Sub(expr1, expr2), c).simplify
 
         // COMMUTATIVITY WITH CONSTS
         // c1*(c2*expr) = (c1*c2)*expr)
-        case Mul(Cons(l1), Mul(Cons(l2), expr)) => Mul(Cons(l1 * l2), expr).simplify()
+        case Mul(Cons(l1), Mul(Cons(l2), expr)) => Mul(Cons(l1 * l2), expr).simplify
         // expr1*(c*expr) = c*(expr1*expr2)
-        case Mul(expr1, Mul(c: Cons, expr2)) => Mul(c, Mul(expr1, expr2)).simplify()
+        case Mul(expr1, Mul(c: Cons, expr2)) => Mul(c, Mul(expr1, expr2)).simplify
 
         // ASSOCIATIVITY
         // a + (b+c) = (a+b)+c
-        case Add(a, Add(b, c)) => Add(Add(a, b), c).simplify()
+        case Add(a, Add(b, c)) => Add(Add(a, b), c).simplify
 
         // a + (b-c) = (a+b) - c
-        case Add(a, Sub(b, c)) => Sub(Add(a, b), c).simplify()
+        case Add(a, Sub(b, c)) => Sub(Add(a, b), c).simplify
 
 
         // COMMUTATIVITY
         // a*(b*c) = (a*b)*c
-        case Mul(a, Mul(b, c)) => Mul(Mul(a, b), c).simplify()
+        case Mul(a, Mul(b, c)) => Mul(Mul(a, b), c).simplify
 
         // a - (b + c) = (a-b)-c
-        case Sub(a, Add(b, c)) => Sub(Sub(a, b), c).simplify()
+        case Sub(a, Add(b, c)) => Sub(Sub(a, b), c).simplify
         // a - (b - c) = (a-b)+c
-        case Sub(a, Sub(b, c)) => Add(Sub(a, b), c).simplify()
+        case Sub(a, Sub(b, c)) => Add(Sub(a, b), c).simplify
 
-        case Mul(a, b) => Mul(a.simplify(), b.simplify())
-        case Add(a, b) => Add(a.simplify(), b.simplify())
-        case Sub(a, b) => Sub(a.simplify(), b.simplify())
+        case Mul(a, b) => Mul(a.simplify, b.simplify)
+        case Add(a, b) => Add(a.simplify, b.simplify)
+        case Sub(a, b) => Sub(a.simplify, b.simplify)
 
         case _ => this
 
@@ -145,13 +162,13 @@ sealed trait LpExpression {
       case Add(l, r) => "(" + l.show + " + " + r.show + ")"
       case Mul(l, r) => "(" + l.show + " * " + r.show + ")"
       case Sub(l, r) => "(" + l.show + " - " + r.show + ")"
-      case Minus(e) => "!-" + e.show
+      case Minus(e) => "(-" + e.show + ")"
       case s => s.show
     }
   }
 
   override def toString(): String = {
-    this.simplify().show
+    this.simplify.show
   }
 }
 

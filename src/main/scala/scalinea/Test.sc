@@ -1,21 +1,33 @@
-import scalinea.grammar._
-import scalinea.grammar.ToLpInteger._
+import scalinea.grammar.Add
 
-val a: LpInteger = "a"
-val b = "b".toLpInteger
+sealed trait Exp
+case class Sum(a: Exp, b: Exp) extends Exp
+case class Lit(v: Int) extends Exp
+
+val a = Sum(Sum(Lit(1), Lit(2)), Lit(4))
+
+object problem {
+  def underConstraints(exps: => List[Exp]) = {
+    exps
+  }
+}
+
+  var ls: List[Exp] = List()
+  def add(l: Exp) = {
+    ls = l :: ls
+    ls
+  }
+
+problem underConstraints {
+  add(Sum(Lit(1), Lit(1)))
+  add(Sum(Lit(12), Lit(12)))
+}
 
 
-//val expr1 = 500*a + 400*b
-val expr1: LpExpression = 300
-val expr2 = 200 * a
-val expr1bis = 200 - expr1
-/*
-val expr2 = 300 + 400 + a + 200 + a
-val expr3 = b + 400
-val expr4 = a * 300 + 5
-val expr5 = -(a * 200 + b)
-val expr6 = 200 * a
-val expr7 = 200 - a
-val expr8 = -a
-val expr9 = 3 + -(-a)
-*/
+
+
+
+
+
+
+
