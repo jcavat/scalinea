@@ -1,110 +1,139 @@
 package scalinea.grammar
 
 sealed trait LpExpression {
-  def +(that: LpExpression): LpExpression = AddExpr(this, that).simplify()
+  def +(that: LpExpression): LpExpression = Add(this, that).simplify()
 
-  def *(that: LpExpression): LpExpression = MulExpr(this, that).simplify()
+  def *(that: LpExpression): LpExpression = Mul(this, that).simplify()
 
-  def -(that: LpExpression): LpExpression = MinExpr(this, that).simplify()
+  def -(that: LpExpression): LpExpression = Sub(this, that).simplify()
 
   def <=(that: LpExpression) : LpConstraint = {
-    val (LitVal(v), expr) = MinExpr(this, that).simplify().extractConstant()
-    LessOrEquals(expr, LitVal(-v))
+    val (Cons(v), expr) = Sub(this, that).simplify().extractConstant()
+    LessOrEquals(expr, Cons(-v))
   }
   def >=(that: LpExpression) : LpConstraint = {
-    val (LitVal(v), expr) = MinExpr(this, that).simplify().extractConstant()
-    GreaterOrEquals(expr, LitVal(-v))
+    val (Cons(v), expr) = Sub(this, that).simplify().extractConstant()
+    GreaterOrEquals(expr, Cons(-v))
   }
   def ==(that: LpExpression) : LpConstraint = {
-    val (LitVal(v), expr) = MinExpr(this, that).simplify().extractConstant()
-    Equals(expr, LitVal(-v))
+    val (Cons(v), expr) = Sub(this, that).simplify().extractConstant()
+    Equals(expr, Cons(-v))
   }
 
-  def unary_-(): LpExpression = MinUnaryExpr(this).simplify()
+  def unary_-(): LpExpression = Minus(this).simplify()
 
   def unary_+(): LpExpression = this.simplify()
 
-  def extractConstant(): (LitVal, LpExpression) = this match {
-    case AddExpr(lit: LitVal, expr) => (lit, expr)
-    case MinExpr(lit: LitVal, expr) => (lit, MinUnaryExpr(expr).simplify())
-    case expr => (LitVal(0), expr)
+  def extractConstant(): (Cons, LpExpression) = this match {
+    case Add(expr, lit: Cons) => (lit, expr)
+    case Sub(expr, Cons(v)) => (Cons(-v), expr.simplify())
+    case expr => (Cons(0), expr)
   }
 
-  def simplify(): LpExpression = this match {
+ def simplify(): LpExpression = {
+   println("- " + this);
+   this match {
 
-    case lpi: LpInteger => lpi
-    case lit: LitVal => lit
+     case lpi: LpInteger => lpi
+     case lit: Cons => lit
 
-    case MulExpr(LitVal(l1), LitVal(l2)) => LitVal(l1*l2).simplify()
+     // Simplification
+     case Mul(Cons(l1), Cons(l2)) => Cons(l1 * l2)
+     case Add(Cons(l1), Cons(l2)) => Cons(l1 + l2)
+     case Sub(Cons(l1), Cons(l2)) => Cons(l1 - l2)
 
-    // +- rules
-//    case AddExpr(l, MinUnaryExpr(r)) => MinExpr(l, r).simplify()
-    case MinExpr(l, MinUnaryExpr(r)) => AddExpr(l, r).simplify()
-    case MinUnaryExpr(MinUnaryExpr(l)) => l.simplify()
+     // trivial rules
+     case Minus(Cons(v)) => Cons(-v).simplify()
+     case Add(expr, Cons(0)) => expr.simplify()
+     case Mul(Cons(0), expr) => Cons(0)
 
-    // Place literal first
-    case AddExpr(expr, rlit @ LitVal(r)) => AddExpr(rlit, expr).simplify()
-    case MinExpr(expr, rlit @ LitVal(r)) => AddExpr(LitVal(-r), expr).simplify()
-    case MulExpr(expr, rlit @ LitVal(r)) => MulExpr(rlit, expr).simplify()
+     // +- UNARY RULES
+     case Sub(l, Minus(r)) => Add(l, r).simplify()
+     case Add(l, Minus(r)) => Sub(l, r).simplify()
+     case Add(l, Cons(r)) if r < 0 => Sub(l, Cons(-r)).simplify()
+     case Minus(Minus(l)) => l.simplify()
 
-      // (a+b)*c = c*(a+b)
-    case MulExpr(AddExpr(a,b), c) => MulExpr(c, AddExpr(a,b)).simplify()
+     case Minus(Add(a, b)) => Sub(Minus(a), b).simplify() ////////// BBBBBBBBBBBBBBBBBBBB
 
-    // trivial rules
-    case MinUnaryExpr(LitVal(v)) => LitVal(-v).simplify()
-    case AddExpr(LitVal(0), expr) => expr.simplify()
-    case MulExpr(LitVal(0), expr) => LitVal(0)
+     // Place literal first for *
+     case Mul(expr, rlit@Cons(r)) => Mul(rlit, expr).simplify()
+     // (a+b)*c = c*(a+b)
+     case Mul(Add(a, b), c) => Mul(c, Add(a, b)).simplify()
 
-    // Factorization
-    // i*(a+b) = i*a+i*b
-    case MulExpr(expr, AddExpr(a,b)) => AddExpr(MulExpr(expr, a), MulExpr(expr, b)).simplify()
+     // DISTRIBUTIVITY
+     // i*(a+b) = i*a+i*b
+     case Mul(expr, Add(a, b)) => Add(Mul(expr, a), Mul(expr, b)).simplify()
+     // i*(a-b) = i*a-i*b
+     case Mul(expr, Sub(a, b)) => Sub(Mul(expr, a), Mul(expr, b)).simplify()
 
-    // Associativity +/-
-    case AddExpr(LitVal(l1), AddExpr(LitVal(l2), expr)) => AddExpr(LitVal(l1 + l2), expr).simplify()
-    case AddExpr(LitVal(l1), MinExpr(LitVal(l2), expr)) => MinExpr(LitVal(l1 + l2), expr).simplify()
-    case MinExpr(LitVal(l1), MinExpr(LitVal(l2), expr)) => MinExpr(LitVal(l1 - l2), expr).simplify()
-    case MinExpr(LitVal(l1), AddExpr(LitVal(l2), expr)) => AddExpr(LitVal(l1 - l2), expr).simplify()
+     // Place literal at the end for +/-
+     case Add(c: Cons, expr) => Add(expr, c).simplify()
+     // c-expr = -expr+c
+     //   case Sub(c: Cons, expr) => Add(Minus(expr), c).simplify() ///// AAAAAAAAAAAAAAAAAAAAAAAAAAA
 
-    // Associativity *
-    case MulExpr(LitVal(l1), MulExpr(LitVal(l2), expr)) => MulExpr(LitVal(l1 * l2), expr).simplify()
-    case MulExpr(a, MulExpr(lit: LitVal, expr)) => MulExpr(lit, MulExpr(a,expr)).simplify()
+     // Simplification consts +/-
+     // (expr+c1)+c2 = expr+(c1+c2)
+     case Add(Add(expr, Cons(l1)), Cons(l2)) => Add(expr, Cons(l1 + l2)).simplify()
+     // (expr-c1)+c2 = expr+(c2-c1)
+     case Add(Sub(expr, Cons(l1)), Cons(l2)) => Add(expr, Cons(l2 - l1)).simplify()
+     // (expr-c1)-c2 = expr-(c1+c2)
+     case Sub(Sub(expr, Cons(l1)), Cons(l2)) => Sub(expr, Cons(l1 + l2)).simplify()
+     // (expr+c1)-c2 = expr+(c1-c2)
+     case Sub(Add(expr, Cons(l1)), Cons(l2)) => Add(expr, Cons(l1 - l2)).simplify()
+     // (c1-expr)-c2 = -expr+(c1-c2)
+     case Sub(Sub(Cons(c1), expr), Cons(c2)) => Add(Minus(expr), Cons(c1 - c2)).simplify()
+     // (c1-expr)+c2 = -expr+(c1+c2)
+     case Add(Sub(Cons(c1), expr), Cons(c2)) => Add(Minus(expr), Cons(c1 + c2)).simplify()
 
-    // (a+b) + c = a + (b+c)
-    case AddExpr(AddExpr(a,b), c) => AddExpr(a, AddExpr(b, c)).simplify()
+     // Extract the const
+     // (expr1+c)+expr2 = (expr1+expr2)+c
+     case Add(Add(expr1, c: Cons), expr2) => Add(Add(expr1, expr2), c).simplify()
+     // (expr1-c)+expr2 = (expr1+expr2)-c
+     case Add(Sub(expr1, c: Cons), expr2) => Sub(Add(expr1, expr2), c).simplify()
+     // (expr1+c)-expr2 = (expr1-expr2)+c
+     case Sub(Add(expr1, c: Cons), expr2) => Add(Sub(expr1, expr2), c).simplify()
+     // (expr1-c)-expr2 = (expr1-expr2)-c
+     case Sub(Sub(expr1, c: Cons), expr2) => Sub(Sub(expr1, expr2), c).simplify()
 
-    // (a+b) - c = a + (b-c)
-    case MinExpr(AddExpr(a,b), c) => AddExpr(a, MinExpr(b, c)).simplify()
+     // COMMUTATIVITY WITH CONSTS
+     // c1*(c2*expr) = (c1*c2)*expr)
+     case Mul(Cons(l1), Mul(Cons(l2), expr)) => Mul(Cons(l1 * l2), expr).simplify()
+     // expr1*(c*expr) = c*(expr1*expr2)
+     case Mul(expr1, Mul(c: Cons, expr2)) => Mul(c, Mul(expr1, expr2)).simplify()
 
+     // ASSOCIATIVITY
+     // a + (b+c) = (a+b)+c
+     case Add(a, Add(b, c)) => Add(Add(a, b), c).simplify()
 
-    // (a*b)*c = a*(b*c)
-    case MulExpr(MulExpr(a,b),c) => MulExpr(a, MulExpr(b,c)).simplify()
+     // a + (b-c) = (a+b) - c
+     case Add(a, Sub(b, c)) => Sub(Add(a, b), c).simplify()
 
-    // (a-b)+c = a - (b + c)
-    case AddExpr(MinExpr(a,b),c) => MinExpr(a, AddExpr(b,c)).simplify()
-    // (a-b)-c = a - (b + c)
-    case MinExpr(MinExpr(a,b),c) => MinExpr(a, AddExpr(b,c)).simplify()
+     // COMMUTATIVITY
+     // a*(b*c) = (a*b)*c
+     case Mul(a, Mul(b, c)) => Mul(Mul(a, b), c).simplify()
 
-    // TODO: a-(b+c) = a-b-c
-    case MinExpr(a, AddExpr(b,c)) => MinExpr(a.simplify(), AddExpr(b.simplify(), MinUnaryExpr(c.simplify())))
-    // TODO: a-(b-c) = a-b+c
+     // a - (b + c) = (a-b)-c
+     case Sub(a, Add(b, c)) => Sub(Sub(a, b), c).simplify()
+     // a - (b - c) = (a-b)+c
+     case Sub(a, Sub(b, c)) => Add(Sub(a, b), c).simplify()
 
+     case Mul(a, b) => Mul(a.simplify(), b.simplify())
+     case Add(a, b) => Add(a.simplify(), b.simplify())
+     case Sub(a, b) => Sub(a.simplify(), b.simplify())
 
-    case MulExpr(a,b) => MulExpr(a.simplify(), b.simplify())
-    case AddExpr(a,b) => AddExpr(a.simplify(), b.simplify())
-    case MinExpr(a,b) => MinExpr(a.simplify(), b.simplify())
+     case _ => this
 
-    case _ => this
-
-  }
+   }
+ }
 
   override def toString: String = {
     this match {
       case LpInteger(name) => name
-      case LitVal(v) => v.toString
-      case AddExpr(l,r) => "("+ l.toString + " + " + r.toString +")"
-      case MulExpr(l,r) =>  "("+l.toString + " * " + r.toString +")"
-      case MinExpr(l,r) =>  "("+l.toString + " - " + r.toString +")"
-      case MinUnaryExpr(e) => e.toString
+      case Cons(v) => v.toString
+      case Add(l,r) => "("+ l.toString + " + " + r.toString +")"
+      case Mul(l,r) =>  "("+l.toString + " * " + r.toString +")"
+      case Sub(l,r) =>  "("+l.toString + " - " + r.toString +")"
+      case Minus(e) => "!-"+e.toString
       case s => s.toString
     }
 /*
@@ -123,39 +152,39 @@ this match {
 
 case class LpInteger(name: String) extends LpExpression
 
-case class LitVal(value: Int) extends LpExpression
+case class Cons(value: Int) extends LpExpression
 
-case class AddExpr(lexpr: LpExpression, rexpr: LpExpression) extends LpExpression
+case class Add(lexpr: LpExpression, rexpr: LpExpression) extends LpExpression
 
-case class MulExpr(lexpr: LpExpression, rexpr: LpExpression) extends LpExpression
+case class Mul(lexpr: LpExpression, rexpr: LpExpression) extends LpExpression
 
-case class MinExpr(lexpr: LpExpression, rexpr: LpExpression) extends LpExpression
+case class Sub(lexpr: LpExpression, rexpr: LpExpression) extends LpExpression
 
-case class MinUnaryExpr(expr: LpExpression) extends LpExpression
+case class Minus(expr: LpExpression) extends LpExpression
 
 case class PlusUnaryExpr(expr: LpExpression) extends LpExpression
 
 trait ToLpInteger[A] {
-def toLpInteger(a: A): LpInteger
+  def toLpInteger(a: A): LpInteger
 }
 
 object ToLpInteger {
 
-implicit object StringToLpInteger extends ToLpInteger[String] {
-def toLpInteger(a: String): LpInteger = LpInteger(a)
-}
+  implicit object StringToLpInteger extends ToLpInteger[String] {
+    def toLpInteger(a: String): LpInteger = LpInteger(a)
+  }
 
-implicit class ToLpUtil[A](x: A) {
-def toLpInteger(implicit subject: ToLpInteger[A]) = {
-  subject.toLpInteger(x)
-}
-}
+  implicit class ToLpUtil[A](x: A) {
+    def toLpInteger(implicit subject: ToLpInteger[A]) = {
+      subject.toLpInteger(x)
+    }
+  }
 
 }
 
 object LpExpression {
-implicit def stringToLpInteger(s: String): LpInteger = LpInteger(s)
+  implicit def stringToLpInteger(s: String): LpInteger = LpInteger(s)
 
-implicit def intToLpInteger(s: Int): LitVal = LitVal(s)
+  implicit def intToLpInteger(s: Int): Cons = Cons(s)
 }
 
