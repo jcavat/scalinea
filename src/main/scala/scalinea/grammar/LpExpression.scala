@@ -169,6 +169,8 @@ case class Minus(expr: LpExpression) extends LpExpression
 
 case class PlusUnaryExpr(expr: LpExpression) extends LpExpression
 
+case object NoneExpr extends LpExpression
+
 trait ToLpInteger[A] {
   def toLpInteger(a: A): LpInteger
 }
