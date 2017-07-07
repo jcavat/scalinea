@@ -5,9 +5,16 @@ case class Sum(a: Exp, b: Exp) extends Exp
 case class Lit(v: Int) extends Exp
 
 
-object problem {
+case class Problem(ls: List[Exp], objective: Option[Exp]){
+  def get() = (ls, objective)
+}
+
+object Problem {
+
 
   var ls: List[Exp] = List()
+  var objecti: Option[Exp] = None
+
 
   case object ConstraintOk {
     def apply(s: String) = {
@@ -15,10 +22,13 @@ object problem {
     }
   }
 
-  def underConstraints(exps: => List[Exp]) = {
+  def underConstraints(exps: => Unit) = {
+    ls = List()
+    objecti = None
     exps
-    ls
+    Problem(ls, objecti)
   }
+
 
   sealed trait Action
   case object add extends Action
@@ -27,16 +37,14 @@ object problem {
   case object maximize extends ActionFun
 
   case class AddBuilder(action: Action) {
-    def constraint(e: Exp): List[Exp] = {
+    def constraint(e: Exp) = {
       ls = ls :+ e
-      ls
     }
   }
 
   case class FunBuilder(action: ActionFun) {
-    def obj(e: Exp): List[Exp] = {
-      ls = ls :+ e
-      ls
+    def obj(e: Exp) = {
+      objecti = Some(e)
     }
   }
 
@@ -44,12 +52,16 @@ object problem {
   implicit def actionToFunBuilder(action: ActionFun) = FunBuilder(action)
   implicit def actionToActionBuilder(action: Action) = AddBuilder(action)
 }
-import problem._
 
+import Problem._
 
-problem underConstraints {
+Problem underConstraints {
   add constraint Sum(Lit(1),Lit(2))
   add constraint Sum(Lit(1),Lit(2))
   maximize obj Lit(1)
+}
+
+Problem underConstraints {
+  add constraint Lit(1)
 }
 
