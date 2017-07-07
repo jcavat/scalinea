@@ -4,6 +4,7 @@ import org.scalatest._
 import scalinea.grammar.ToLpInteger._
 import scalinea.grammar._
 
+import org.scalatest.FeatureSpec
 
 /**
   * Created by joel on 04.07.17.
