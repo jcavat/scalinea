@@ -1,11 +1,13 @@
 package ch.hepia.scalinea
 package dsl
 
+import util.Show
+
 sealed trait Expr {
   def toTerms: clause.Terms = this match {
     case Const(_) => ???
     case Var(sym) => clause.Terms.singleVar(sym)
-    case Add(_,_) => ???
+    case Add(lhs,rhs) => lhs.toTerms + rhs.toTerms
   }
 }
 case class Const(value: Double) extends Expr
@@ -27,8 +29,10 @@ object Demo  extends App {
 
   import Ops._
 
-  val e = x+y
+  val e = x+y+x
 
   println(e)
+  
+  Show[clause.Terms].print(e.toTerms)
 
 }

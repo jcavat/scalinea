@@ -26,7 +26,9 @@ object Sign {
 
 
 case class Constant(value: Double)
-case class NonZeroConstant private(value: Double)
+case class NonZeroConstant private(value: Double) {
+  def +(that: NonZeroConstant): Option[NonZeroConstant] = NonZeroConstant(this.value+that.value)
+}
 object NonZeroConstant {
   def apply(value: Double): Option[NonZeroConstant] = 
     if(nonZero(value)) 
@@ -93,6 +95,19 @@ object Vars {
 
 case class Terms(terms: Map[Vars, NonZeroConstant]) {
   def sortedVars = terms.keySet.toList.sorted
+
+  def +(that: Terms): Terms = {
+    val termMap = (this.terms.keySet ++ that.terms.keySet).map { vars =>
+      (this.terms.get(vars), that.terms.get(vars)) match {
+        case (Some(c1), Some(c2)) => vars -> (c1 + c2)
+        case (None, Some(c)) => vars -> Some(c)
+        case (Some(c), None) => vars -> Some(c)
+        case (None, None) => vars -> None // Unreachable code
+      }
+    }.filter( _._2.isDefined ).map { case (vars, o) => (vars, o.get) }.toMap
+
+    Terms(termMap)
+  }
 }
 object Terms {
 
