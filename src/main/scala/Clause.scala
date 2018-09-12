@@ -49,12 +49,12 @@ object Exponent {
 case class Var(symbol: String)
 
 case class Vars(value: Map[Var, Exponent]) {
-  def sortedKeys = value.keySet.toList.sortBy( _.symbol )
+  def sortedVars = value.keySet.toList.sortBy( _.symbol )
 }
 
 object Vars {
   implicit val canShow = Show.instance[Vars]{ vs =>
-    vs.sortedKeys.map{ v =>
+    vs.sortedVars.map{ v =>
       val exponent = vs.value(v).value
       if( exponent == 1 )
         v.symbol
@@ -62,15 +62,39 @@ object Vars {
         v.symbol+"^"+exponent.toString
     }.mkString("")
   }
+  /* Canonical ordering:
+   * - alphabetic per first symbol
+   * - less vars first
+   * - small exponent first
+   */
+  implicit val canOrder = new Ordering[Vars] {
+    def compare( lhs: Vars, rhs: Vars ): Int = {
+      def cmp( vs1: List[Var], vs2: List[Var] ): Int = (vs1,vs2) match {
+        case (Nil,Nil) => 0
+        case (Nil,_) => 1 
+        case (_,Nil) => -1
+        case ((v1@Var(h1))::t1,(v2@Var(h2))::t2) => {
+          if(h1 < h2) -1
+          else if( h1 > h2 ) 1
+          else if( lhs.value(v1).value < rhs.value(v2).value ) -1
+          else if( lhs.value(v1).value > rhs.value(v2).value ) 1
+          else 0
+        }
+      }
+      cmp(lhs.sortedVars,rhs.sortedVars)
+    }
+  }
 }
 
-//TODO: Add canonical ordering for terms
-case class Terms(terms: Map[Vars, NonZeroConstant])
+case class Terms(terms: Map[Vars, NonZeroConstant]) {
+  def sortedVars = terms.keySet.toList.sorted
+}
 object Terms {
   implicit val canShow = Show.instance[Terms]{ ts =>
-    ts.terms.toList.map {
-      case (vs,NonZeroConstant(x)) =>
-        x.toString +"*"+ Show[Vars].asString(vs)
+    ts.sortedVars.map {
+      case vs =>
+        val const = ts.terms(vs).value
+        const.toString +"*"+ Show[Vars].asString(vs)
     }.mkString(" + ")
   }
 }
@@ -94,7 +118,7 @@ object Demo extends App {
   val terms =
     Terms(
       Map( Vars(Map( x->two, y->one ))->twoC, Vars(Map(x->one))->fiveC) )
-  val clause = Clause( terms, Sign.Less, Constant(5) )
+  val clause = Clause( terms, Sign.NonEq, Constant(5) )
 
   println( clause )
   Show[Clause].print(clause)
