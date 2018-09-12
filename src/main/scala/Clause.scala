@@ -2,7 +2,17 @@ package ch.hepia.scalinea
 
 sealed trait Sign {
   import Sign._
-  def show: String = this match {
+}
+
+object Sign {
+  case object Eq extends Sign
+  case object NonEq extends Sign
+  case object BigEq extends Sign
+  case object LessEq extends Sign
+  case object Big extends Sign
+  case object Less extends Sign
+
+  implicit val canShow = Show.instance[Sign]{
     case Eq => "="
     case NonEq => "≠"
     case BigEq => "≥"
@@ -11,26 +21,14 @@ sealed trait Sign {
     case Less => "<"
   }
 }
-object Sign {
-  case object Eq extends Sign
-  case object NonEq extends Sign
-  case object BigEq extends Sign
-  case object LessEq extends Sign
-  case object Big extends Sign
-  case object Less extends Sign
-}
 
 object MathUtil {
   val delta: Double = 0.00001
   def nonZero(value: Double): Boolean = math.abs(value) > delta
 }
 
-case class Constant(value: Double) {
-  def show: String = value.toString
-}
-case class NonZeroConstant private(value: Double) {
-  def show: String = value.toString
-}
+case class Constant(value: Double)
+case class NonZeroConstant private(value: Double)
 object NonZeroConstant {
   def apply(value: Double): Option[NonZeroConstant] = 
     if(MathUtil.nonZero(value)) 
@@ -39,9 +37,7 @@ object NonZeroConstant {
       None
 }
 
-case class Exponent private ( value: Int ) {
-  def show: String = value.toString
-}
+case class Exponent private ( value: Int )
 object Exponent {
   def apply( value: Int ): Option[Exponent] = 
     if( value != 0 )
@@ -50,32 +46,42 @@ object Exponent {
       None
 }
 
-case class Var(symbol: String) {
-  def show: String = symbol
-}
+case class Var(symbol: String)
 
 case class Vars(value: Map[Var, Exponent]) {
-  def show: String = {
-    value.toList.sortBy( _._1.symbol ).map{
-      case (v,ex) if ex.value == 1 => v.show
-      case (v,ex) => v.show+"^"+ex.show
-    }.mkString("*")
+  def sortedKeys = value.keySet.toList.sortBy( _.symbol )
+}
+
+object Vars {
+  implicit val canShow = Show.instance[Vars]{ vs =>
+    vs.sortedKeys.map{ v =>
+      val exponent = vs.value(v).value
+      if( exponent == 1 )
+        v.symbol
+      else
+        v.symbol+"^"+exponent.toString
+    }.mkString("")
   }
 }
 
-case class Terms(terms: Map[Vars, NonZeroConstant]) {
-  def show: String = {
-    terms.toList.map{
-      case (vs,cst) => (cst.show,vs.show)
-    }.sortBy( _._2).map{
-      case (cst,vs) => cst+"*"+vs
+//TODO: Add canonical ordering for terms
+case class Terms(terms: Map[Vars, NonZeroConstant])
+object Terms {
+  implicit val canShow = Show.instance[Terms]{ ts =>
+    ts.terms.toList.map {
+      case (vs,NonZeroConstant(x)) =>
+        x.toString +"*"+ Show[Vars].asString(vs)
     }.mkString(" + ")
   }
 }
 
-case class Clause(terms: Terms, sign: Sign, constant: Constant) {
-  def show: String =
-     terms.show + " " + sign.show + " " + constant.show
+case class Clause(terms: Terms, sign: Sign, constant: Constant)
+object Clause {
+  implicit val canShow = Show.instance[Clause]{
+    case Clause(ts,sign,Constant(x)) =>
+      Show[Terms].asString(ts) + " " +
+     Show[Sign].asString(sign) + " " + x.toString
+  }
 }
 
 object Demo extends App {
@@ -91,7 +97,7 @@ object Demo extends App {
   val clause = Clause( terms, Sign.Less, Constant(5) )
 
   println( clause )
-  println( clause.show )
+  Show[Clause].print(clause)
 
 }
 
