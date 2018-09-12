@@ -1,8 +1,10 @@
 package ch.hepia.scalinea
+package clause
 
-sealed trait Sign {
-  import Sign._
-}
+import util.MathUtil.nonZero
+import util.Show
+
+sealed trait Sign 
 
 object Sign {
   case object Eq extends Sign
@@ -22,16 +24,12 @@ object Sign {
   }
 }
 
-object MathUtil {
-  val delta: Double = 0.00001
-  def nonZero(value: Double): Boolean = math.abs(value) > delta
-}
 
 case class Constant(value: Double)
 case class NonZeroConstant private(value: Double)
 object NonZeroConstant {
   def apply(value: Double): Option[NonZeroConstant] = 
-    if(MathUtil.nonZero(value)) 
+    if(nonZero(value)) 
       Some(new NonZeroConstant(value)) 
     else
       None
@@ -60,7 +58,7 @@ object Vars {
         v.symbol
       else
         v.symbol+"^"+exponent.toString
-    }.mkString("")
+    }.mkString("*")
   }
   /* Canonical ordering:
    * - alphabetic per first symbol
@@ -78,7 +76,7 @@ object Vars {
           else if( h1 > h2 ) 1
           else if( lhs.value(v1).value < rhs.value(v2).value ) -1
           else if( lhs.value(v1).value > rhs.value(v2).value ) 1
-          else 0
+          else cmp(t1,t2)
         }
       }
       cmp(lhs.sortedVars,rhs.sortedVars)
@@ -118,7 +116,7 @@ object Demo extends App {
   val terms =
     Terms(
       Map( Vars(Map( x->two, y->one ))->twoC, Vars(Map(x->one))->fiveC) )
-  val clause = Clause( terms, Sign.NonEq, Constant(5) )
+  val clause = Clause( terms, Sign.BigEq, Constant(5) )
 
   println( clause )
   Show[Clause].print(clause)

@@ -1,4 +1,4 @@
-package ch.hepia.scalinea
+package ch.hepia.scalinea.util
 
 trait Show[A] {
   def asString( a: A ): String
