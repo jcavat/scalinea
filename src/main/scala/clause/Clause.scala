@@ -33,6 +33,8 @@ object NonZeroConstant {
       Some(new NonZeroConstant(value)) 
     else
       None
+
+  val one = new NonZeroConstant(1.0)
 }
 
 case class Exponent private ( value: Int )
@@ -42,6 +44,8 @@ object Exponent {
       Some( new Exponent(value) )
     else
       None
+
+  val one = new Exponent(1)
 }
 
 case class Var(symbol: String)
@@ -51,6 +55,9 @@ case class Vars(value: Map[Var, Exponent]) {
 }
 
 object Vars {
+  def singleVar( symb: String ): Vars =
+    Vars( Map( Var(symb) -> Exponent.one ) ) 
+
   implicit val canShow = Show.instance[Vars]{ vs =>
     vs.sortedVars.map{ v =>
       val exponent = vs.value(v).value
@@ -88,6 +95,11 @@ case class Terms(terms: Map[Vars, NonZeroConstant]) {
   def sortedVars = terms.keySet.toList.sorted
 }
 object Terms {
+
+  def singleVar( symb: String ): Terms = {
+    Terms( Map( Vars.singleVar(symb) -> NonZeroConstant.one ) )
+  }
+
   implicit val canShow = Show.instance[Terms]{ ts =>
     ts.sortedVars.map {
       case vs =>
@@ -106,7 +118,7 @@ object Clause {
   }
 }
 
-object Demo extends App {
+object Demo {
   val x = Var("x")
   val y = Var("y")
   val one = Exponent(1).get
