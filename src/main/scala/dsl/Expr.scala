@@ -17,6 +17,18 @@ case class Var(symbol: String) extends Expr
 case class Add( lhs: Expr, rhs: Expr ) extends Expr
 case class Mult( lhs: Expr, rhs: Expr ) extends Expr
 
+sealed trait Constr {
+  import Ops._
+
+  def toClause: clause.Clause = this match {
+    case LessEq(lhs, rhs) => clause.Clause( (lhs-rhs).toTerms , clause.Sign.LessEq )
+  }
+}
+
+case class LessEq(lhs: Expr, rhs: Expr) extends Constr
+
+
+
 object Ops {
 
   implicit class RichExpr( lhs: Expr ) {
@@ -26,6 +38,7 @@ object Ops {
     def *( rhs: Double ) = Mult( lhs, Const(rhs) )
     def -( rhs: Expr ) = Add( lhs, Const(-1)*rhs )
     def -( rhs: Double ) = Add( lhs, Const(-1)*rhs )
+    def <=( rhs: Expr ) = LessEq(lhs, rhs)
   }
 
   implicit class RichDouble( lhs: Double ) {
@@ -51,10 +64,10 @@ object Demo  extends App {
 
   import Ops._
 
-  val e = 1+x
+  val e = 2+x <= 4*y
 
   println(e)
   
-  Show[clause.Terms].print(e.toTerms)
+  Show[clause.Clause].print(e.toClause)
 
 }
