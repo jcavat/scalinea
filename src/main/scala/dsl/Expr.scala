@@ -21,8 +21,21 @@ object Ops {
 
   implicit class RichExpr( lhs: Expr ) {
     def +( rhs: Expr ) = Add( lhs, rhs )
+    def +( rhs: Double ) = Add( lhs, Const(rhs) )
     def *( rhs: Expr ) = Mult( lhs, rhs )
     def -( rhs: Expr ) = Add( lhs, Const(-1)*rhs )
+  }
+
+  implicit class RichDouble( lhs: Double ) {
+    def +( rhs: Expr ) = Add( Const(lhs), rhs )
+    def *( rhs: Expr ) = Mult( Const(lhs), rhs )
+    def -( rhs: Expr ) = Add( Const(lhs), Const(-1)*rhs )
+  }
+
+  implicit class RichInt( lhs: Int ) {
+    def +( rhs: Expr ) = Add( Const(lhs.toDouble), rhs )
+    def *( rhs: Expr ) = Mult( Const(lhs.toDouble), rhs )
+    def -( rhs: Expr ) = Add( Const(lhs.toDouble), Const(-1)*rhs )
   }
 
 }
@@ -36,7 +49,7 @@ object Demo  extends App {
 
   import Ops._
 
-  val e = x*(one + x*(one+x))
+  val e = 1+x
 
   println(e)
   
