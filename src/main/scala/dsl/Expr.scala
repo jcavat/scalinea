@@ -23,7 +23,9 @@ object Ops {
     def +( rhs: Expr ) = Add( lhs, rhs )
     def +( rhs: Double ) = Add( lhs, Const(rhs) )
     def *( rhs: Expr ) = Mult( lhs, rhs )
+    def *( rhs: Double ) = Mult( lhs, Const(rhs) )
     def -( rhs: Expr ) = Add( lhs, Const(-1)*rhs )
+    def -( rhs: Double ) = Add( lhs, Const(-1)*rhs )
   }
 
   implicit class RichDouble( lhs: Double ) {
