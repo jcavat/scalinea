@@ -2,7 +2,7 @@ package ch.hepia.scalinea
 package clause
 
 import util.MathUtil.nonZero
-import util.Show
+import util.{LpFormat, Show}
 
 sealed trait Sign 
 
@@ -19,6 +19,15 @@ object Sign {
     case NonEq => "≠"
     case BigEq => "≥"
     case LessEq => "≤"
+    case Big => ">"
+    case Less => "<"
+  }
+
+  implicit val canExportToLp = LpFormat.instance[Sign]{
+    case Eq => "="
+    case NonEq => "!="
+    case BigEq => ">="
+    case LessEq => "<="
     case Big => ">"
     case Less => "<"
   }
@@ -55,7 +64,11 @@ object Exponent {
 case class Var(symbol: String)
 
 case class Vars(value: Map[Var, Exponent]) {
+  import Vars._
+
   def sortedVars = value.keySet.toList.sortBy( _.symbol )
+
+  def isLinear = this == constant || ( value.size == 1 && value.head._2 == Exponent.one )
 
   def *(that: Vars): Vars = {
     val varMap = (this.value.keySet ++ that.value.keySet).map { v =>
@@ -87,6 +100,17 @@ object Vars {
         v.symbol+"^"+exponent.toString
     }.mkString("*")
   }
+
+  implicit val canExportToLp = LpFormat.instance[Vars]{ vs =>
+    vs.sortedVars.map{ v =>
+      val exponent = vs.value(v).value
+      if( exponent == 1 )
+        v.symbol
+      else
+        v.symbol+" ^ "+exponent.toString
+    }.mkString(" ")
+  }
+
   /* Canonical ordering:
    * - alphabetic per first symbol
    * - less vars first
@@ -158,6 +182,20 @@ object Terms {
     }.mkString(" + ")
   }
 
+  implicit val canExportToLp = LpFormat.instance[Terms]{ ts =>
+
+    val (linearVars, quadVars) = ts.sortedVars.partition( vars => vars.isLinear )
+
+    val toStr: List[Vars] => List[String] =
+      _.map( vars => ts.terms(vars).value.toString + " " + LpFormat[Vars].asString(vars) )
+
+    val linear = toStr(linearVars).mkString(" + ")
+    val quad = toStr(quadVars).mkString(" + ")
+
+    linear + " + [ " + quad + " ]"
+
+  }
+
   private def mulTerm(lhs: (Vars, NonZeroConstant), rhs: (Vars, NonZeroConstant)): (Vars, NonZeroConstant) = {
     (lhs._1 * rhs._1, lhs._2 * rhs._2)
   }
@@ -170,6 +208,12 @@ object Clause {
     case Clause(ts,sign) =>
       Show[Terms].asString(ts) + " " +
      Show[Sign].asString(sign) + " 0"
+  }
+
+  implicit val canExportToLp = LpFormat.instance[Clause]{
+    case Clause(ts,sign) =>
+      LpFormat[Terms].asString(ts) + " " +
+        LpFormat[Sign].asString(sign) + " 0"
   }
 }
 

@@ -1,7 +1,7 @@
 package ch.hepia.scalinea
 package dsl
 
-import util.{MathUtil, Show}
+import util.{LpFormat, MathUtil, Show}
 
 sealed trait Expr {
   def toTerms: clause.Terms = this match {
@@ -87,10 +87,11 @@ object Demo  extends App {
 
   import Ops._
 
-  val e = 2*x*x <= 4*x
+  val e = 2*x*x <= 4*x - 3 + 3*x*y + 3*y + 18
 
   println(e)
   
   Show[clause.Clause].print(e.toClause)
+  LpFormat[clause.Clause].print(e.toClause)
 
 }
