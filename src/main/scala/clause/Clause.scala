@@ -25,7 +25,6 @@ object Sign {
 }
 
 
-case class Constant(value: Double)
 case class NonZeroConstant private(value: Double) {
   def +(that: NonZeroConstant): Option[NonZeroConstant] = NonZeroConstant(this.value+that.value)
 }
@@ -57,6 +56,9 @@ case class Vars(value: Map[Var, Exponent]) {
 }
 
 object Vars {
+
+  val constant: Vars = Vars( Map() )
+
   def singleVar( symb: String ): Vars =
     Vars( Map( Var(symb) -> Exponent.one ) ) 
 
@@ -111,6 +113,8 @@ case class Terms(terms: Map[Vars, NonZeroConstant]) {
 }
 object Terms {
 
+  def constant(value: NonZeroConstant): Terms = Terms( Map(Vars.constant -> value) )
+
   def singleVar( symb: String ): Terms = {
     Terms( Map( Vars.singleVar(symb) -> NonZeroConstant.one ) )
   }
@@ -124,12 +128,12 @@ object Terms {
   }
 }
 
-case class Clause(terms: Terms, sign: Sign, constant: Constant)
+case class Clause(terms: Terms, sign: Sign)
 object Clause {
   implicit val canShow = Show.instance[Clause]{
-    case Clause(ts,sign,Constant(x)) =>
+    case Clause(ts,sign) =>
       Show[Terms].asString(ts) + " " +
-     Show[Sign].asString(sign) + " " + x.toString
+     Show[Sign].asString(sign) + " 0"
   }
 }
 
@@ -143,7 +147,7 @@ object Demo {
   val terms =
     Terms(
       Map( Vars(Map( x->two, y->one ))->twoC, Vars(Map(x->one))->fiveC) )
-  val clause = Clause( terms, Sign.BigEq, Constant(5) )
+  val clause = Clause( terms, Sign.BigEq )
 
   println( clause )
   Show[Clause].print(clause)
