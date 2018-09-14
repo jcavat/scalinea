@@ -82,7 +82,7 @@ object Demo  extends App {
 
   val x = Var("x")
   val y = Var("y")
-  val z = Var("y")
+  val z = Var("z")
   val one = Const(1)
 
   import Ops._
