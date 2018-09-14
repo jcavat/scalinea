@@ -38,7 +38,9 @@ object NonZeroConstant {
   val one = new NonZeroConstant(1.0)
 }
 
-case class Exponent private ( value: Int )
+case class Exponent private ( value: Int ) {
+  def +(that: Exponent): Option[Exponent] = Exponent(value + that.value)
+}
 object Exponent {
   def apply( value: Int ): Option[Exponent] = 
     if( value != 0 )
@@ -53,6 +55,19 @@ case class Var(symbol: String)
 
 case class Vars(value: Map[Var, Exponent]) {
   def sortedVars = value.keySet.toList.sortBy( _.symbol )
+
+  def *(that: Vars): Vars = {
+    val varMap = (this.value.keySet ++ that.value.keySet).map { v =>
+      (this.value.get(v), that.value.get(v)) match {
+        case (Some(e1), Some(e2)) => v -> (e1 + e2)
+        case (None, Some(c)) => v -> Some(c)
+        case (Some(c), None) => v -> Some(c)
+        case (None, None) => v -> None // Unreachable code
+      }
+    }.filter( _._2.isDefined ).map { case (v, o) => (v, o.get) }.toMap
+
+    Vars(varMap)
+  }
 }
 
 object Vars {
@@ -110,6 +125,8 @@ case class Terms(terms: Map[Vars, NonZeroConstant]) {
 
     Terms(termMap)
   }
+
+
 }
 object Terms {
 
