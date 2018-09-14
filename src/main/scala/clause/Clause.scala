@@ -27,6 +27,7 @@ object Sign {
 
 case class NonZeroConstant private(value: Double) {
   def +(that: NonZeroConstant): Option[NonZeroConstant] = NonZeroConstant(this.value+that.value)
+  def *(that: NonZeroConstant): NonZeroConstant = new NonZeroConstant(value*that.value)
 }
 object NonZeroConstant {
   def apply(value: Double): Option[NonZeroConstant] = 
@@ -126,6 +127,19 @@ case class Terms(terms: Map[Vars, NonZeroConstant]) {
     Terms(termMap)
   }
 
+  def *(that: Terms): Terms = {
+    val tuples = for {
+      lhs <- this.terms.toList
+      rhs <- that.terms.toList
+    } yield (Terms.mulTerm(lhs, rhs))
+
+    tuples.map{
+      case (vs, nzc) => Terms( Map(vs -> nzc) )
+    }.reduceLeft(_+_)
+
+  }
+
+
 
 }
 object Terms {
@@ -143,6 +157,11 @@ object Terms {
         const.toString +"*"+ Show[Vars].asString(vs)
     }.mkString(" + ")
   }
+
+  private def mulTerm(lhs: (Vars, NonZeroConstant), rhs: (Vars, NonZeroConstant)): (Vars, NonZeroConstant) = {
+    (lhs._1 * rhs._1, lhs._2 * rhs._2)
+  }
+
 }
 
 case class Clause(terms: Terms, sign: Sign)
