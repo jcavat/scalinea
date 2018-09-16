@@ -168,10 +168,10 @@ object Terms {
     val toStr: List[Vars] => List[String] =
       _.map( vars => ts.terms(vars).value.toString + " " + LpFormat[Vars].asString(vars) )
 
-    val linear = toStr(linearVars).mkString(" + ")
-    val quad = toStr(quadVars).mkString(" + ")
+    val linearVarsExpr = toStr(linearVars).mkString(" + ")
+    val quadVarsExpr = if (quadVars.isEmpty) "" else " [ " + toStr(quadVars).mkString(" + ") + " ] "
 
-    linear + ( if (quad.isEmpty) "" else " + [ " + quad + " ]" )
+    linearVarsExpr + quadVarsExpr
 
   }
 
