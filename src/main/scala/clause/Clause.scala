@@ -192,6 +192,7 @@ object Clause {
   implicit val canExportToLp = LpFormat.instance[Clause]{
     case Clause(ts,sign) => {
 
+      // If constant exists in terms, put it on the right side of que constraint equation
       ts.terms.get( Vars(Map()) ) match {
         case Some( v ) =>
           LpFormat[Terms].asString(Terms(ts.terms - Vars(Map()))) + " " +
