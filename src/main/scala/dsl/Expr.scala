@@ -11,8 +11,11 @@ sealed trait Expr {
     case Add(lhs,rhs) => lhs.toTerms + rhs.toTerms
     case Mult(lhs,rhs) => lhs.toTerms * rhs.toTerms
   }
+  def isZero: Boolean = false
 }
-case class Const(value: Double) extends Expr
+case class Const(value: Double) extends Expr {
+  override def isZero: Boolean = MathUtil.isZero(value)
+}
 case class Var(symbol: String) extends Expr
 case class Add( lhs: Expr, rhs: Expr ) extends Expr
 case class Mult( lhs: Expr, rhs: Expr ) extends Expr
