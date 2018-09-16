@@ -140,6 +140,9 @@ case class Terms(terms: Map[Vars, NonZeroConstant]) {
       rhs <- that.terms.toList
     } yield (Terms.mulTerm(lhs, rhs))
 
+    if (tuples.isEmpty)
+      return Terms.empty
+
     tuples.map{
       case (vs, nzc) => Terms( Map(vs -> nzc) )
     }.reduceLeft(_+_)
@@ -148,6 +151,8 @@ case class Terms(terms: Map[Vars, NonZeroConstant]) {
 object Terms {
 
   def constant(value: NonZeroConstant): Terms = Terms( Map(Vars.constant -> value) )
+
+  def empty: Terms = Terms( Map() )
 
   def singleVar( symb: String ): Terms = {
     Terms( Map( Vars.singleVar(symb) -> NonZeroConstant.one ) )

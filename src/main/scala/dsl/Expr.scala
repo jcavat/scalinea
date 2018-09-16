@@ -6,7 +6,7 @@ import util.{LpFormat, MathUtil, Show}
 sealed trait Expr {
   def toTerms: clause.Terms = this match {
     case Const(v) if MathUtil.nonZero(v) => clause.Terms.constant( clause.NonZeroConstant(v).get )
-    case Const(_) => ???
+    case Const(_) => clause.Terms.empty
     case Var(sym) => clause.Terms.singleVar(sym)
     case Add(lhs,rhs) => lhs.toTerms + rhs.toTerms
     case Mult(lhs,rhs) => lhs.toTerms * rhs.toTerms
@@ -94,7 +94,7 @@ object Demo  extends App {
   import Ops._
 
   //val e = 2*x*x + 20 === 4*x - 3 + 3*x*y + 3*y + 18
-  val e = 3*x + 2*y + 5*z + 5 >= 3*one
+  val e = 3*x + 2*y + 0*z -4 >= -4
 
   println(e)
   
