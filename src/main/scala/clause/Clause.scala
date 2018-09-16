@@ -2,7 +2,7 @@ package ch.hepia.scalinea
 package clause
 
 import util.MathUtil.nonZero
-import util.{LpFormat, Show}
+import util.{LpFormat, Show, MapUtil}
 
 sealed trait Sign 
 
@@ -44,7 +44,6 @@ object NonZeroConstant {
       Some(new NonZeroConstant(value)) 
     else
       None
-
   val one = new NonZeroConstant(1.0)
 }
 
@@ -71,15 +70,7 @@ case class Vars(value: Map[Var, Exponent]) {
   def isLinear = this == constant || ( value.size == 1 && value.head._2 == Exponent.one )
 
   def *(that: Vars): Vars = {
-    val varMap = (this.value.keySet ++ that.value.keySet).map { v =>
-      (this.value.get(v), that.value.get(v)) match {
-        case (Some(e1), Some(e2)) => v -> (e1 + e2)
-        case (None, Some(c)) => v -> Some(c)
-        case (Some(c), None) => v -> Some(c)
-        case (None, None) => v -> None // Unreachable code
-      }
-    }.filter( _._2.isDefined ).map { case (v, o) => (v, o.get) }.toMap
-
+    val varMap = MapUtil.mergeOpt[Var,Exponent]( this.value, that.value, _ + _ )
     Vars(varMap)
   }
 }
@@ -139,15 +130,7 @@ case class Terms(terms: Map[Vars, NonZeroConstant]) {
   def sortedVars = terms.keySet.toList.sorted
 
   def +(that: Terms): Terms = {
-    val termMap = (this.terms.keySet ++ that.terms.keySet).map { vars =>
-      (this.terms.get(vars), that.terms.get(vars)) match {
-        case (Some(c1), Some(c2)) => vars -> (c1 + c2)
-        case (None, Some(c)) => vars -> Some(c)
-        case (Some(c), None) => vars -> Some(c)
-        case (None, None) => vars -> None // Unreachable code
-      }
-    }.filter( _._2.isDefined ).map { case (vars, o) => (vars, o.get) }.toMap
-
+    val termMap = MapUtil.mergeOpt[Vars,NonZeroConstant](this.terms, that.terms, _+_ )
     Terms(termMap)
   }
 
@@ -160,11 +143,7 @@ case class Terms(terms: Map[Vars, NonZeroConstant]) {
     tuples.map{
       case (vs, nzc) => Terms( Map(vs -> nzc) )
     }.reduceLeft(_+_)
-
   }
-
-
-
 }
 object Terms {
 

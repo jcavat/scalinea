@@ -20,12 +20,15 @@ case class Mult( lhs: Expr, rhs: Expr ) extends Expr
 sealed trait Constr {
   import Ops._
 
+  private def makeClause( lhs: Expr, rhs: Expr, sign: clause.Sign ) =
+    clause.Clause( (lhs-rhs).toTerms, sign )
+
   def toClause: clause.Clause = this match {
-    case LessEq(lhs, rhs) => clause.Clause( (lhs-rhs).toTerms , clause.Sign.LessEq )
-    case Less(lhs, rhs) => clause.Clause( (lhs-rhs).toTerms , clause.Sign.Less )
-    case BigEq(lhs, rhs) => clause.Clause( (lhs-rhs).toTerms , clause.Sign.BigEq )
-    case Big(lhs, rhs) => clause.Clause( (lhs-rhs).toTerms , clause.Sign.Big )
-    case Eq(lhs, rhs) => clause.Clause( (lhs-rhs).toTerms , clause.Sign.Eq )
+    case LessEq(lhs, rhs) => makeClause( lhs, rhs, clause.Sign.LessEq )
+    case Less(lhs, rhs) => makeClause( lhs, rhs, clause.Sign.Less )
+    case BigEq(lhs, rhs) => makeClause( lhs, rhs, clause.Sign.BigEq )
+    case Big(lhs, rhs) => makeClause( lhs, rhs, clause.Sign.Big )
+    case Eq(lhs, rhs) => makeClause( lhs, rhs, clause.Sign.Eq )
   }
 }
 
