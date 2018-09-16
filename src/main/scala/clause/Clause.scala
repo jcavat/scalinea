@@ -192,7 +192,7 @@ object Terms {
     val linear = toStr(linearVars).mkString(" + ")
     val quad = toStr(quadVars).mkString(" + ")
 
-    linear + " + [ " + quad + " ]"
+    linear + ( if (quad.isEmpty) "" else " + [ " + quad + " ]" )
 
   }
 
@@ -211,9 +211,18 @@ object Clause {
   }
 
   implicit val canExportToLp = LpFormat.instance[Clause]{
-    case Clause(ts,sign) =>
-      LpFormat[Terms].asString(ts) + " " +
-        LpFormat[Sign].asString(sign) + " 0"
+    case Clause(ts,sign) => {
+
+      ts.terms.get( Vars(Map()) ) match {
+        case Some( v ) =>
+          LpFormat[Terms].asString(Terms(ts.terms - Vars(Map()))) + " " +
+            LpFormat[Sign].asString(sign) + " " + -v.value
+
+        case None =>
+          LpFormat[Terms].asString(ts) + " " +
+            LpFormat[Sign].asString(sign) + " 0"
+      }
+    }
   }
 }
 

@@ -87,7 +87,8 @@ object Demo  extends App {
 
   import Ops._
 
-  val e = 2*x*x <= 4*x - 3 + 3*x*y + 3*y + 18
+  //val e = 2*x*x + 20 === 4*x - 3 + 3*x*y + 3*y + 18
+  val e = 3*x + 2*y + 5*z + 5*one >= 3*one
 
   println(e)
   
