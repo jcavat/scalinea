@@ -8,7 +8,7 @@ case class Failure( errors: List[String], warnings: List[String] ) extends Outpu
 case class Success[T]( result: T, warnings: List[String] ) extends Output[T]
 
 trait Format[+T] {
-  def apply( system: System ): Output[T]
+  def apply( system: clause.System ): Output[T]
 }
 
 
