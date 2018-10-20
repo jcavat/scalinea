@@ -1,7 +1,9 @@
 package ch.hepia.scalinea
 package dsl
 
-import util.{LpFormat, MathUtil, Show}
+import ch.hepia.scalinea.clause.Terms
+import ch.hepia.scalinea.format.LPFormat
+import util.{MathUtil, Show}
 
 sealed trait Expr {
   def toTerms: clause.Terms = this match {
@@ -99,6 +101,11 @@ object Demo  extends App {
   println(e)
   
   Show[clause.Clause].print(e.toClause)
-  LpFormat[clause.Clause].print(e.toClause)
+
+  val output = LPFormat( clause.System(List(e.toClause), Terms.empty) )
+  output match {
+    case format.Success(results, _) => results.foreach( println )
+    case _ => //
+  }
 
 }
