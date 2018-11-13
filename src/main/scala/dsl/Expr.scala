@@ -54,6 +54,7 @@ object Ops {
     def *( rhs: Double ) = Mult( lhs, Const(rhs) )
     def -( rhs: Expr ) = Add( lhs, Const(-1)*rhs )
     def -( rhs: Double ) = Add( lhs, Const(-1)*rhs )
+    def unary_- = Mult(Const(-1), lhs )
     def <=( rhs: Expr ) = LessEq( lhs, rhs )
     def <=( rhs: Double ) = LessEq( lhs, Const(rhs) )
     def <( rhs: Expr ) = Less( lhs, rhs )
@@ -86,7 +87,7 @@ object Ops {
 
 }
 
-object Demo  extends App {
+object ExprDemo  extends App {
 
   val x = Var("x")
   val y = Var("y")
