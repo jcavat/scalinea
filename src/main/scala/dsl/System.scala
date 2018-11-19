@@ -14,18 +14,17 @@ object System {
   sealed trait HasGoal extends Goal
 
   case class SysState[C<:Constr,G<:Goal] private(
-    clauses: List[clause.Clause],
-    gopt: Option[clause.Terms]
+    constr: List[dsl.Constr],
+    gopt: Option[Expr]
   ) {
 
     def constraints( cs: dsl.Constr* ): SysState[HasConstr,G] = {
-      val clauses2 = cs.toList.map( _.toClause )
-      new SysState( clauses ++ clauses2 , gopt )
+      copy( constr = constr ++ cs.toList )
     }
 
     def minimize( expr: dsl.Expr )( implicit ev: G =:= NoGoal ): SysState[C,HasGoal] = {
       require( ev != null ) //Always true in order to remove warning
-      new SysState(clauses,Some(expr.toTerms))
+      copy(gopt=Some(expr))
     }
 
     def maximize( expr: dsl.Expr )( implicit ev: G =:= NoGoal ): SysState[C,HasGoal] = {
@@ -33,10 +32,9 @@ object System {
       minimize( Mult( Const(-1), expr ) )
     }
 
-
     def build( implicit ev0: C =:= HasConstr, ev1: G =:= HasGoal ): clause.System = {
       require( ev0 != null && ev1 != null ) //Always true in order to remove warning
-      clause.System( clauses, gopt.get )
+      clause.System( constr.map(_.toClause), gopt.get.toTerms )
     }
   }
   object SysState {
@@ -49,7 +47,6 @@ object System {
 
 object SysDemo extends App {
 
-  import Ops._
 
   def showFmt( sys: clause.System ): Unit = {
     val output = format.LPFormat( sys )
@@ -59,8 +56,9 @@ object SysDemo extends App {
     }
   }
 
-
   val system = {
+    import Ops._
+
     val x = Var("x")
     val y = Var("y")
     val z = Var("z")
@@ -76,9 +74,6 @@ object SysDemo extends App {
     ).build
   }
  
-
   showFmt( system )
-  //println( system.goal )
-
 
 }
