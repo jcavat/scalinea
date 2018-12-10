@@ -2,7 +2,7 @@ package ch.hepia.scalinea
 package clause
 
 import util.MathUtil.nonZero
-import util.{LpFormat, Show, MapUtil}
+import util.{Show, MapUtil}
 
 sealed trait Sign 
 
@@ -23,14 +23,6 @@ object Sign {
     case Less => "<"
   }
 
-  implicit val canExportToLp = LpFormat.instance[Sign]{
-    case Eq => "="
-    case NonEq => "!="
-    case BigEq => ">="
-    case LessEq => "<="
-    case Big => ">"
-    case Less => "<"
-  }
 }
 
 
@@ -90,16 +82,6 @@ object Vars {
       else
         v.symbol+"^"+exponent.toString
     }.mkString("*")
-  }
-
-  implicit val canExportToLp = LpFormat.instance[Vars]{ vs =>
-    vs.sortedVars.map{ v =>
-      val exponent = vs.value(v).value
-      if( exponent == 1 )
-        v.symbol
-      else
-        v.symbol+" ^ "+exponent.toString
-    }.mkString(" ")
   }
 
   /* Canonical ordering:
@@ -166,20 +148,6 @@ object Terms {
     }.mkString(" + ")
   }
 
-  implicit val canExportToLp = LpFormat.instance[Terms]{ ts =>
-
-    val (linearVars, quadVars) = ts.sortedVars.partition( vars => vars.isLinear )
-
-    val toStr: List[Vars] => List[String] =
-      _.map( vars => ts.terms(vars).value.toString + " " + LpFormat[Vars].asString(vars) )
-
-    val linearVarsExpr = toStr(linearVars).mkString(" + ")
-    val quadVarsExpr = if (quadVars.isEmpty) "" else " [ " + toStr(quadVars).mkString(" + ") + " ] "
-
-    linearVarsExpr + quadVarsExpr
-
-  }
-
   private def mulTerm(lhs: (Vars, NonZeroConstant), rhs: (Vars, NonZeroConstant)): (Vars, NonZeroConstant) = {
     (lhs._1 * rhs._1, lhs._2 * rhs._2)
   }
@@ -193,27 +161,11 @@ object Clause {
       Show[Terms].asString(ts) + " " +
      Show[Sign].asString(sign) + " 0"
   }
-
-  implicit val canExportToLp = LpFormat.instance[Clause]{
-    case Clause(ts,sign) => {
-
-      // If constant exists in terms, put it on the right side of que constraint equation
-      ts.terms.get( Vars(Map()) ) match {
-        case Some( v ) =>
-          LpFormat[Terms].asString(Terms(ts.terms - Vars(Map()))) + " " +
-            LpFormat[Sign].asString(sign) + " " + -v.value
-
-        case None =>
-          LpFormat[Terms].asString(ts) + " " +
-            LpFormat[Sign].asString(sign) + " 0"
-      }
-    }
-  }
 }
 
 object Demo {
   val x = Var("x")
-  val y = Var("y")
+  val y = Var("z")
   val one = Exponent(1).get
   val two = Exponent(2).get
   val twoC = NonZeroConstant(2).get
@@ -226,5 +178,5 @@ object Demo {
   println( clause )
   Show[Clause].print(clause)
 
-}
 
+}
