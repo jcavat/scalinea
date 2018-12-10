@@ -14,13 +14,14 @@ object System {
   sealed trait Goal
   sealed trait NoGoal extends Goal
   sealed trait HasGoal extends Goal
-  case class Minimize(terms: Terms) extends HasGoal
-  case class Maximize(terms: Terms) extends HasGoal
 
+  sealed trait GoalTerms
+  case class Minimize(terms: Terms) extends GoalTerms
+  case class Maximize(terms: Terms) extends GoalTerms
 
   case class SysState[C<:Constr,G<:Goal] private(
     constr: List[dsl.Constr],
-    gopt: Option[HasGoal]
+    gopt: Option[GoalTerms]
   ) {
 
     def constraints( cs: dsl.Constr* ): SysState[HasConstr,G] = {
@@ -65,13 +66,13 @@ object SysDemo extends App {
     import Ops._
 
     val x = Var("x")
-    val y = Var("y")
+    val y = Var("y").range(0,20)
     val z = Var("z")
 
     System.define.constraints(
       3*x + y < 2*z,
       -x < y,
-      x + y + z >= 0,
+      x + y + z >= 0
     ).constraints(
       5*x < -2*z
     ).maximize(
