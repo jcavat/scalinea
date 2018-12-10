@@ -67,7 +67,7 @@ object LPFormat extends Format[Iterable[String]] {
         ts.terms.get( Vars(Map()) ) match {
           case Some( v ) =>
             Terms(ts.terms - Vars(Map())).toLp + " " +
-              sign + " " + -v.value
+              sign.toLp + " " + -v.value
 
           case None =>
             ts.toLp + " " +
