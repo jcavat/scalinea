@@ -1,7 +1,7 @@
 package ch.hepia.scalinea
 package dsl
 
-import ch.hepia.scalinea.clause.Terms
+import ch.hepia.scalinea.dsl.System.Maximize
 import ch.hepia.scalinea.format.LPFormat
 import util.{MathUtil, Show}
 
@@ -9,7 +9,7 @@ sealed trait Expr {
   def toTerms: clause.Terms = this match {
     case Const(v) if MathUtil.nonZero(v) => clause.Terms.constant( clause.NonZeroConstant(v).get )
     case Const(_) => clause.Terms.empty
-    case Var(sym) => clause.Terms.singleVar(sym)
+    case Var(sym, _, _) => clause.Terms.singleVar(sym)
     case Add(lhs,rhs) => lhs.toTerms + rhs.toTerms
     case Mult(lhs,rhs) => lhs.toTerms * rhs.toTerms
   }
@@ -18,7 +18,12 @@ sealed trait Expr {
 case class Const(value: Double) extends Expr {
   override def isZero: Boolean = MathUtil.isZero(value)
 }
-case class Var(symbol: String) extends Expr
+case class Var(symbol: String, minBound: Option[Double] = None, maxBound: Option[Double] = None) extends Expr {
+  def free: Var = copy( minBound = Some(Double.NegativeInfinity), maxBound = Some(Double.PositiveInfinity) )
+  def minBound(min: Double): Var = copy( minBound=Some(min) )
+  def maxBound(max: Double): Var = copy( maxBound=Some(max) )
+  def range(min: Double, max: Double): Var = minBound(min).maxBound(max)
+}
 case class Add( lhs: Expr, rhs: Expr ) extends Expr
 case class Mult( lhs: Expr, rhs: Expr ) extends Expr
 
@@ -103,7 +108,7 @@ object ExprDemo  extends App {
   
   Show[clause.Clause].print(e.toClause)
 
-  val output = LPFormat( clause.System(List(e.toClause), Terms.empty) )
+  val output = LPFormat( clause.System(List(e.toClause), Maximize((3*x).toTerms)) )
   output match {
     case format.Success(results, _) => results.foreach( println )
     case _ => //
