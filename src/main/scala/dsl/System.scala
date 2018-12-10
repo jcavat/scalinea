@@ -40,7 +40,13 @@ object System {
 
     def build( implicit ev0: C =:= HasConstr, ev1: G =:= HasGoal ): clause.System = {
       require( ev0 != null && ev1 != null ) //Always true in order to remove warning
-      clause.System( constr.map(_.toClause), gopt.get)
+      val clauses = constr.map(_.toClause)
+      val vars: List[clause.Var] = for {
+        clause <- clauses
+        sortedVars <- clause.terms.sortedVars
+        v <- sortedVars.sortedVar
+      } yield v
+      clause.System( clauses, gopt.get, vars.toSet )
     }
   }
   object SysState {
@@ -69,8 +75,10 @@ object SysDemo extends App {
     val y = Var("y").range(0,20)
     val z = Var("z").maxBound(40)
     val t = Var("t").free
+    val u = Var("u")
 
     System.define.constraints(
+      t + u <= 0,
       3*x + y < 2*z,
       -x < y,
       x + y + z >= 0,

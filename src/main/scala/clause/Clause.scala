@@ -52,12 +52,15 @@ object Exponent {
   val one = new Exponent(1)
 }
 
-case class Var(symbol: String)
+case class Var(symbol: String, minBound: Option[Double] = None, maxBound: Option[Double] = None) {
+  def isFree: Boolean = minBound.isEmpty && maxBound.isEmpty
+  def isBounded: Boolean = minBound.isDefined || maxBound.isDefined
+}
 
 case class Vars(value: Map[Var, Exponent]) {
   import Vars._
 
-  def sortedVars = value.keySet.toList.sortBy( _.symbol )
+  def sortedVar = value.keySet.toList.sortBy( _.symbol )
 
   def isLinear = this == constant || ( value.size == 1 && value.head._2 == Exponent.one )
 
@@ -71,11 +74,11 @@ object Vars {
 
   val constant: Vars = Vars( Map() )
 
-  def singleVar( symb: String ): Vars =
-    Vars( Map( Var(symb) -> Exponent.one ) ) 
+  def singleVar( symb: String, minBound: Option[Double] = None, maxBound: Option[Double] ): Vars =
+    Vars( Map( Var(symb, minBound, maxBound) -> Exponent.one ) )
 
   implicit val canShow = Show.instance[Vars]{ vs =>
-    vs.sortedVars.map{ v =>
+    vs.sortedVar.map{ v =>
       val exponent = vs.value(v).value
       if( exponent == 1 )
         v.symbol
@@ -93,9 +96,9 @@ object Vars {
     def compare( lhs: Vars, rhs: Vars ): Int = {
       def cmp( vs1: List[Var], vs2: List[Var] ): Int = (vs1,vs2) match {
         case (Nil,Nil) => 0
-        case (Nil,_) => 1 
+        case (Nil,_) => 1
         case (_,Nil) => -1
-        case ((v1@Var(h1))::t1,(v2@Var(h2))::t2) => {
+        case ((v1@Var(h1, _, _))::t1,(v2@Var(h2, _, _))::t2) => {
           if(h1 < h2) -1
           else if( h1 > h2 ) 1
           else if( lhs.value(v1).value < rhs.value(v2).value ) -1
@@ -103,7 +106,7 @@ object Vars {
           else cmp(t1,t2)
         }
       }
-      cmp(lhs.sortedVars,rhs.sortedVars)
+      cmp(lhs.sortedVar,rhs.sortedVar)
     }
   }
 }
@@ -136,8 +139,8 @@ object Terms {
 
   def empty: Terms = Terms( Map() )
 
-  def singleVar( symb: String ): Terms = {
-    Terms( Map( Vars.singleVar(symb) -> NonZeroConstant.one ) )
+  def singleVar( symb: String, minBound: Option[Double] = None, maxBound: Option[Double] ): Terms = {
+    Terms( Map( Vars.singleVar(symb, minBound, maxBound) -> NonZeroConstant.one ) )
   }
 
   implicit val canShow = Show.instance[Terms]{ ts =>

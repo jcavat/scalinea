@@ -2,9 +2,9 @@ package ch.hepia.scalinea
 package format
 
 import ch.hepia.scalinea.clause.Sign._
-import ch.hepia.scalinea.clause.{Clause, Sign, Terms, Vars}
+import ch.hepia.scalinea.clause.{Clause, Sign, Terms, Var, Vars}
+import ch.hepia.scalinea.dsl.System
 import ch.hepia.scalinea.dsl.System.{Maximize, Minimize}
-
 
 
 object LPFormat extends Format[Iterable[String]] {
@@ -26,7 +26,7 @@ object LPFormat extends Format[Iterable[String]] {
 
   implicit class VarsLpFormattable(vs: Vars) extends LpFormattable {
     override def toLp: String = {
-      vs.sortedVars.map {
+      vs.sortedVar.map {
         v =>
           val exponent = vs.value (v).value
           if (exponent == 1)
@@ -52,15 +52,18 @@ object LPFormat extends Format[Iterable[String]] {
   }
 
   def apply( system: clause.System ):  Output[Iterable[String]] = {
-    val clauses = system.constraints
-    val goal = system.goal
+    val clauses: List[Clause] = system.constraints
+    val goal: System.GoalTerms = system.goal
+    val vars: Set[clause.Var] = system.vars
 
+    // Objective section
     val goalLp: String = goal match {
-      case Maximize(terms) => "Max: " + terms.toLp
-      case Minimize(terms) => "Min: " + terms.toLp
+      case Maximize(terms) => "Maximize\n obj: " + terms.toLp
+      case Minimize(terms) => "Minimize\n obj: " + terms.toLp
     }
 
-    val lps: List[String] = clauses.map {
+    // Constraints section
+    val lps: List[String] = "Subject To" :: clauses.map {
       case Clause(ts,sign) => {
 
         // If constant exists in terms, put it on the right side of que constraint equation
@@ -74,9 +77,22 @@ object LPFormat extends Format[Iterable[String]] {
               sign.toLp + " 0"
         }
       }
+    }.zipWithIndex.map {
+      case (line, index) if line.contains("[") => " qc" + index + ": " + line // quadratic
+      case (line, index) => " c" + index + ": " + line
     }
 
-    Success(goalLp :: lps, Nil)
+    // Bound Section
+    val bounds: List[String] = "Bounds" :: vars.toList.filter(_.isBounded).map {
+      case Var(symbol, Some(min), Some(max)) => min + " <= " + symbol + " <= " + max
+      case Var(symbol, None, Some(max)) => symbol + " <= " + max
+      case Var(symbol, Some(min), None) => min + " <= " + symbol
+      case _ => throw new IllegalStateException() // Never happend due to the filter
+    }.map( " " + _)
+
+    // TODO: Generals (For integer vars)
+
+    Success(goalLp :: lps ++ bounds, Nil)
 
   }
 
