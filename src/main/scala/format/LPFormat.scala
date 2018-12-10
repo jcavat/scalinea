@@ -3,6 +3,7 @@ package format
 
 import ch.hepia.scalinea.clause.Sign._
 import ch.hepia.scalinea.clause.{Clause, Sign, Terms, Vars}
+import ch.hepia.scalinea.dsl.System.{Maximize, Minimize}
 
 
 
@@ -52,6 +53,12 @@ object LPFormat extends Format[Iterable[String]] {
 
   def apply( system: clause.System ):  Output[Iterable[String]] = {
     val clauses = system.constraints
+    val goal = system.goal
+
+    val goalLp: String = goal match {
+      case Maximize(terms) => "Max: " + terms.toLp
+      case Minimize(terms) => "Min: " + terms.toLp
+    }
 
     val lps: List[String] = clauses.map {
       case Clause(ts,sign) => {
@@ -69,7 +76,7 @@ object LPFormat extends Format[Iterable[String]] {
       }
     }
 
-    Success(lps, Nil)
+    Success(goalLp :: lps, Nil)
 
   }
 

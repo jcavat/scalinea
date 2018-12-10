@@ -1,6 +1,8 @@
 package ch.hepia.scalinea
 package dsl
 
+import ch.hepia.scalinea.clause.Terms
+
 
 object System {
 
@@ -12,10 +14,13 @@ object System {
   sealed trait Goal
   sealed trait NoGoal extends Goal
   sealed trait HasGoal extends Goal
+  case class Minimize(terms: Terms) extends HasGoal
+  case class Maximize(terms: Terms) extends HasGoal
+
 
   case class SysState[C<:Constr,G<:Goal] private(
     constr: List[dsl.Constr],
-    gopt: Option[Expr]
+    gopt: Option[HasGoal]
   ) {
 
     def constraints( cs: dsl.Constr* ): SysState[HasConstr,G] = {
@@ -24,7 +29,7 @@ object System {
 
     def minimize( expr: dsl.Expr )( implicit ev: G =:= NoGoal ): SysState[C,HasGoal] = {
       require( ev != null ) //Always true in order to remove warning
-      copy(gopt=Some(expr))
+      copy(gopt=Some(Minimize(expr.toTerms)))
     }
 
     def maximize( expr: dsl.Expr )( implicit ev: G =:= NoGoal ): SysState[C,HasGoal] = {
@@ -34,7 +39,7 @@ object System {
 
     def build( implicit ev0: C =:= HasConstr, ev1: G =:= HasGoal ): clause.System = {
       require( ev0 != null && ev1 != null ) //Always true in order to remove warning
-      clause.System( constr.map(_.toClause), gopt.get.toTerms )
+      clause.System( constr.map(_.toClause), gopt.get)
     }
   }
   object SysState {
