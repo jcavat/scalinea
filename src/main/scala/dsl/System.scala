@@ -65,14 +65,16 @@ object SysDemo extends App {
   val system = {
     import Ops._
 
-    val x = Var("x")
+    val x = Var("x").minBound(0.3)
     val y = Var("y").range(0,20)
-    val z = Var("z")
+    val z = Var("z").maxBound(40)
+    val t = Var("t").free
 
     System.define.constraints(
       3*x + y < 2*z,
       -x < y,
-      x + y + z >= 0
+      x + y + z >= 0,
+      t >= 33
     ).constraints(
       5*x < -2*z
     ).maximize(
