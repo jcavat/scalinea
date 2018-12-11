@@ -53,8 +53,10 @@ object Exponent {
 }
 
 case class Var(symbol: String, minBound: Option[Double] = None, maxBound: Option[Double] = None) {
-  def isFree: Boolean = minBound.isEmpty && maxBound.isEmpty
-  def isBounded: Boolean = minBound.isDefined || maxBound.isDefined
+  private def isMinBoundInfinity : Boolean = minBound.isDefined && minBound.get == Double.NegativeInfinity
+  private def isMaxBoundInfinity : Boolean = maxBound.isDefined && maxBound.get == Double.PositiveInfinity
+  def isFree: Boolean = isMinBoundInfinity && isMaxBoundInfinity
+  def isBounded: Boolean = !isFree && (minBound.isDefined || maxBound.isDefined)
 }
 
 case class Vars(value: Map[Var, Exponent]) {
