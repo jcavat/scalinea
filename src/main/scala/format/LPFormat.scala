@@ -39,15 +39,16 @@ object LPFormat extends Format[Iterable[String]] {
 
   implicit class TermsLpFormattable(ts: Terms) extends LpFormattable {
     override def toLp: String = {
+      // FIXME: non linear vars are treated as quadratic vars
       val (linearVars, quadVars) = ts.sortedVars.partition(vars => vars.isLinear)
 
       val toStr: List[Vars] => List[String] =
         _.map(vars => ts.terms(vars).value.toString + " " + vars.toLp)
 
       val linearVarsExpr = toStr(linearVars).mkString(" + ")
-      val quadVarsExpr = if (quadVars.isEmpty) "" else " [ " + toStr(quadVars).mkString(" + ") + " ] "
-
-      linearVarsExpr + quadVarsExpr
+      val quadVarsExpr = if (quadVars.isEmpty) "" else "[ " + toStr(quadVars).mkString(" + ") + " ]"
+      val optionalAdd = if (linearVars.isEmpty) "" else " + "
+      linearVarsExpr + optionalAdd + quadVarsExpr
     }
   }
 

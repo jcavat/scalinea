@@ -78,7 +78,7 @@ object SysDemo extends App {
     val u = Var("u")
 
     System.define.constraints(
-      t + u <= 0,
+      t * t + u <= 0,
       3*x + y < 2*z,
       -x < y,
       x + y + z >= 0,
