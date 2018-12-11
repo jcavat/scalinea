@@ -74,8 +74,8 @@ object Vars {
 
   val constant: Vars = Vars( Map() )
 
-  def singleVar( symb: String, minBound: Option[Double] = None, maxBound: Option[Double] ): Vars =
-    Vars( Map( Var(symb, minBound, maxBound) -> Exponent.one ) )
+  def singleVar( v: Var ): Vars =
+    Vars( Map( v -> Exponent.one ) )
 
   implicit val canShow = Show.instance[Vars]{ vs =>
     vs.sortedVar.map{ v =>
@@ -140,7 +140,7 @@ object Terms {
   def empty: Terms = Terms( Map() )
 
   def singleVar( symb: String, minBound: Option[Double] = None, maxBound: Option[Double] ): Terms = {
-    Terms( Map( Vars.singleVar(symb, minBound, maxBound) -> NonZeroConstant.one ) )
+    Terms( Map( Vars.singleVar(Var(symb, minBound, maxBound)) -> NonZeroConstant.one ) )
   }
 
   implicit val canShow = Show.instance[Terms]{ ts =>
