@@ -74,19 +74,16 @@ object SysDemo extends App {
     val x = Var("x").minBound(0.3)
     val y = Var("y").range(0,20)
     val z = Var("z").maxBound(40)
-    val t = Var("t").free
-    val u = Var("u")
+    //val t = Var("t").free
+    //val u = Var("u")
 
     System.define.constraints(
-      t * t + u <= 0,
-      3*x + y < 2*z,
-      -x < y,
-      x + y + z >= 0,
-      t >= 33
+      x <= 1,
+      y >= 10
     ).constraints(
-      5*x < -2*z
+      z <= y
     ).maximize(
-      x - z
+      x + y + z
     ).build
   }
  
