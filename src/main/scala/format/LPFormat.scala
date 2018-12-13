@@ -47,7 +47,7 @@ object LPFormat extends Format[Iterable[String]] {
 
       val linearVarsExpr = toStr(linearVars).mkString(" + ")
       val quadVarsExpr = if (quadVars.isEmpty) "" else "[ " + toStr(quadVars).mkString(" + ") + " ]"
-      val optionalAdd = if (linearVars.isEmpty) "" else " + "
+      val optionalAdd = if (linearVars.isEmpty || quadVars.isEmpty) "" else " + "
       linearVarsExpr + optionalAdd + quadVarsExpr
     }
   }
