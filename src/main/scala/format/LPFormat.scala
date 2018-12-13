@@ -93,7 +93,9 @@ object LPFormat extends Format[Iterable[String]] {
 
     // TODO: Generals (For integer vars)
 
-    Success(goalLp :: lps ++ bounds, Nil)
+    val end: String = "End"
+
+    Success(goalLp :: lps ++ (bounds :+ end), Nil)
 
   }
 
