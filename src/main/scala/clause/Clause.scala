@@ -125,7 +125,7 @@ case class Terms(terms: Map[Vars, NonZeroConstant]) {
     val tuples = for {
       lhs <- this.terms.toList
       rhs <- that.terms.toList
-    } yield (Terms.mulTerm(lhs, rhs))
+    } yield Terms.mulTerm(lhs, rhs)
 
     if (tuples.isEmpty)
       return Terms.empty
@@ -146,11 +146,12 @@ object Terms {
   }
 
   implicit val canShow = Show.instance[Terms]{ ts =>
-    ts.sortedVars.map {
-      case vs =>
+    ts.sortedVars.map (
+      vs => {
         val const = ts.terms(vs).value
         const.toString +"*"+ Show[Vars].asString(vs)
-    }.mkString(" + ")
+      }
+    ).mkString(" + ")
   }
 
   private def mulTerm(lhs: (Vars, NonZeroConstant), rhs: (Vars, NonZeroConstant)): (Vars, NonZeroConstant) = {
