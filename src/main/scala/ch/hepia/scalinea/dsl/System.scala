@@ -89,4 +89,13 @@ object SysDemo extends App {
  
   showFmt( system )
 
+  /*
+   * Format[T] specify Output[T]
+   * LPFormat[Iterable[String]] specify Output[Iterable[String]]
+   * but nothing can constraint that a solver inheriting from Solver[Output[T]] can solve a real LP format, not
+   * just Iterable[String]
+   * should we create a type for Iterable[String] ? But what its name ? for sure something representing LpFormat
+   * but "LpFormat" is already used
+   */
+
 }
