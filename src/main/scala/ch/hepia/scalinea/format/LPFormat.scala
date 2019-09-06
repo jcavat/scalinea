@@ -88,7 +88,7 @@ object LPFormat extends Format[Iterable[String]] {
       case Var(symbol, Some(min), Some(max)) => min + " <= " + symbol + " <= " + max
       case Var(symbol, None, Some(max)) => symbol + " <= " + max
       case Var(symbol, Some(min), None) => min + " <= " + symbol
-      case _ => throw new IllegalStateException() // Never happend due to the filter
+      case _ => throw new IllegalStateException() // Never happened due to the filter
     }.map( " " + _)
 
     // TODO: Generals (For integer vars)

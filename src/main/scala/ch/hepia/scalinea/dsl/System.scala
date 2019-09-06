@@ -2,6 +2,8 @@ package ch.hepia.scalinea
 package dsl
 
 import ch.hepia.scalinea.clause.Terms
+import ch.hepia.scalinea.format.Output
+import ch.hepia.scalinea.solver.{FakeLpSolver, Solver}
 
 
 object System {
@@ -61,41 +63,37 @@ object SysDemo extends App {
 
 
   def showFmt( sys: clause.System ): Unit = {
-    val output = format.LPFormat( sys )
+    val output: Output[Iterable[String]] = format.LPFormat( sys )
     output match {
       case format.Success(results, _) => results.foreach( println )
       case err => println( "ERROR: " + err )
     }
   }
 
-  val system = {
+  val system: clause.System = {
     import Ops._
 
-    val x = Var("x").minBound(0.3)
-    val y = Var("y").range(0,20)
+    val x = Var("x").minBound(0).maxBound(10)
+    val y = Var("y").range(0,20.5)
     val z = Var("z").maxBound(40)
-    //val t = Var("t").free
+    val t = Var("t").free
     //val u = Var("u")
 
-    System.define.constraints(
-      x <= 1,
+    dsl.System.define.constraints(
+      x >= 1,
       y >= 10
     ).constraints(
-      z <= y
+      z <= y,
+      t <= 11.4
     ).maximize(
-      x + y + z
+      x + y + z + t
     ).build
   }
+
+  val solver: Solver = FakeLpSolver
+  solver.solve(system)
  
   showFmt( system )
 
-  /*
-   * Format[T] specify Output[T]
-   * LPFormat[Iterable[String]] specify Output[Iterable[String]]
-   * but nothing can constraint that a solver inheriting from Solver[Output[T]] can solve a real LP format, not
-   * just Iterable[String]
-   * should we create a type for Iterable[String] ? But what its name ? for sure something representing LpFormat
-   * but "LpFormat" is already used
-   */
 
 }
