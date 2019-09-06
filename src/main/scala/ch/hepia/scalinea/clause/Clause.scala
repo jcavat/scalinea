@@ -52,11 +52,28 @@ object Exponent {
   val one = new Exponent(1)
 }
 
-case class Var(symbol: String, minBound: Option[Double] = None, maxBound: Option[Double] = None) {
+sealed trait Var {
+  type Value
+  def symbol: String
+}
+sealed trait NumVar extends Var {
+  def minBound: Option[Value]
+  def maxBound: Option[Value]
+  def isBounded: Boolean = false //TODO: Choose meaningful default
+}
+case class BVar( symbol: String ) extends Var {
+  type Value = Boolean
+}
+case class IVar( symbol: String, minBound: Option[Int], maxBound: Option[Int] )
+    extends NumVar {
+  type Value = Int
+}
+case class CVar(symbol: String, minBound: Option[Double] = None, maxBound: Option[Double] = None) extends NumVar{
+  type Value = Double
   private def isMinBoundInfinity : Boolean = minBound.isDefined && minBound.get == Double.NegativeInfinity
   private def isMaxBoundInfinity : Boolean = maxBound.isDefined && maxBound.get == Double.PositiveInfinity
   def isFree: Boolean = isMinBoundInfinity && isMaxBoundInfinity
-  def isBounded: Boolean = !isFree && (minBound.isDefined || maxBound.isDefined)
+  override def isBounded: Boolean = !isFree && (minBound.isDefined || maxBound.isDefined)
 }
 
 case class Vars(value: Map[Var, Exponent]) {
@@ -100,7 +117,9 @@ object Vars {
         case (Nil,Nil) => 0
         case (Nil,_) => 1
         case (_,Nil) => -1
-        case ((v1@Var(h1, _, _))::t1,(v2@Var(h2, _, _))::t2) => {
+        case ( v1::t1, v2::t2) => {
+          val h1 = v1.symbol
+          val h2 = v2.symbol
           if(h1 < h2) -1
           else if( h1 > h2 ) 1
           else if( lhs.value(v1).value < rhs.value(v2).value ) -1
@@ -142,7 +161,7 @@ object Terms {
   def empty: Terms = Terms( Map() )
 
   def singleVar( symb: String, minBound: Option[Double] = None, maxBound: Option[Double] ): Terms = {
-    Terms( Map( Vars.singleVar(Var(symb, minBound, maxBound)) -> NonZeroConstant.one ) )
+    Terms( Map( Vars.singleVar(CVar(symb, minBound, maxBound)) -> NonZeroConstant.one ) )
   }
 
   implicit val canShow = Show.instance[Terms]{ ts =>
@@ -169,20 +188,3 @@ object Clause {
   }
 }
 
-object Demo {
-  val x = Var("x")
-  val y = Var("z")
-  val one = Exponent(1).get
-  val two = Exponent(2).get
-  val twoC = NonZeroConstant(2).get
-  val fiveC = NonZeroConstant(5).get
-  val terms =
-    Terms(
-      Map( Vars(Map( x->two, y->one ))->twoC, Vars(Map(x->one))->fiveC) )
-  val clause = Clause( terms, Sign.BigEq )
-
-  println( clause )
-  Show[Clause].print(clause)
-
-
-}

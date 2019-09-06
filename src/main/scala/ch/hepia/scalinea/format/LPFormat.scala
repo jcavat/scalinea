@@ -2,7 +2,7 @@ package ch.hepia.scalinea
 package format
 
 import ch.hepia.scalinea.clause.Sign._
-import ch.hepia.scalinea.clause.{Clause, Sign, Terms, Var, Vars}
+import ch.hepia.scalinea.clause.{Clause, Sign, Terms, CVar, Vars}
 import ch.hepia.scalinea.dsl.System
 import ch.hepia.scalinea.dsl.System.{Maximize, Minimize}
 
@@ -84,10 +84,13 @@ object LPFormat extends Format[Iterable[String]] {
     }
 
     // Bound Section
-    val bounds: List[String] = "Bounds" :: vars.toList.filter(_.isBounded).map {
-      case Var(symbol, Some(min), Some(max)) => min + " <= " + symbol + " <= " + max
-      case Var(symbol, None, Some(max)) => symbol + " <= " + max
-      case Var(symbol, Some(min), None) => min + " <= " + symbol
+    val bounds: List[String] = "Bounds" :: vars.toList.filter{
+      case v@CVar(_,_,_) if v.isBounded => true
+      case _ => false
+    }.map {
+      case CVar(symbol, Some(min), Some(max)) => min + " <= " + symbol + " <= " + max
+      case CVar(symbol, None, Some(max)) => symbol + " <= " + max
+      case CVar(symbol, Some(min), None) => min + " <= " + symbol
       case _ => throw new IllegalStateException() // Never happened due to the filter
     }.map( " " + _)
 
