@@ -159,8 +159,14 @@ object Terms {
 
   def empty: Terms = Terms( Map() )
 
-  def singleVar( symb: String, minBound: Option[Double] = None, maxBound: Option[Double] ): Terms = {
-    Terms( Map( Vars.singleVar(ContinuousVar(symb, minBound, maxBound)) -> NonZeroConstant.one ) )
+  def singleContinuousVar(symbol: String, minBound: Option[Double] = None, maxBound: Option[Double] ): Terms = {
+    Terms( Map( Vars.singleVar(ContinuousVar(symbol, minBound, maxBound)) -> NonZeroConstant.one ) )
+  }
+  def singleIntegerVar(symbol: String, minBound: Option[Int] = None, maxBound: Option[Int] ): Terms = {
+    Terms( Map( Vars.singleVar(IntegerVar(symbol, minBound, maxBound)) -> NonZeroConstant.one ) )
+  }
+  def singleBinaryVar(symbol: String): Terms = {
+    Terms( Map( Vars.singleVar(BinaryVar(symbol)) -> NonZeroConstant.one ) )
   }
 
   implicit val canShow = Show.instance[Terms]{ ts =>

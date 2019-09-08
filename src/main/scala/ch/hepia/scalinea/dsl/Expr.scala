@@ -9,7 +9,7 @@ sealed trait Expr {
   def toTerms: clause.Terms = this match {
     case Const(v) if MathUtil.nonZero(v) => clause.Terms.constant( clause.NonZeroConstant(v).get )
     case Const(_) => clause.Terms.empty
-    case Var(sym, minBound, maxBound) => clause.Terms.singleVar(sym, minBound, maxBound)
+    case Var(sym, minBound, maxBound) => clause.Terms.singleContinuousVar(sym, minBound, maxBound)
     case Add(lhs,rhs) => lhs.toTerms + rhs.toTerms
     case Mult(lhs,rhs) => lhs.toTerms * rhs.toTerms
   }
