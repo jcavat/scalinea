@@ -69,8 +69,8 @@ case class IntegerVar(symbol: String, minBound: Option[Int], maxBound: Option[In
 }
 case class ContinuousVar(symbol: String, minBound: Option[Double] = None, maxBound: Option[Double] = None) extends NumVar {
   type Value = Double
-  private def isMinBoundInfinity : Boolean = minBound.isDefined && minBound.get == Double.NegativeInfinity
-  private def isMaxBoundInfinity : Boolean = maxBound.isDefined && maxBound.get == Double.PositiveInfinity
+  def isMinBoundInfinity : Boolean = minBound.contains( Double.NegativeInfinity )
+  def isMaxBoundInfinity : Boolean = maxBound.contains( Double.PositiveInfinity )
   def isFree: Boolean = isMinBoundInfinity && isMaxBoundInfinity
   override def isBounded: Boolean = !isFree && super.isBounded
 }

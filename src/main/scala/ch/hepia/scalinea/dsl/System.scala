@@ -75,8 +75,10 @@ object SysDemo extends App {
 
     val x = Var("x").minBound(0).maxBound(10)
     val y = Var("y").range(0,20.5)
-    val z = Var("z").maxBound(40)
+    val z = Var("z").maxBound(40).minBound(Double.NegativeInfinity)
     val t = Var("t").free
+    println( t.minBound + " " + t.maxBound)
+    println( t.minBound.contains(Double.NegativeInfinity) + " " + t.maxBound.contains(Double.PositiveInfinity))
     //val u = Var("u")
 
     dsl.System.define.constraints(

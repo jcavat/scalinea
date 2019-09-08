@@ -84,21 +84,33 @@ object LPFormat extends Format[Iterable[String]] {
     }
 
     // Bound Section
-    val bounds: List[String] = "Bounds" :: vars.toList.filter{
-      case v@ContinuousVar(_,_,_) if v.isBounded => true
+    //  - Continuous vars
+    val continuousBounds: List[String] = vars.filter{
+      case v@ContinuousVar(_,_,_) if v.isBounded || v.isFree => true
       case _ => false
     }.map {
-      case ContinuousVar(symbol, Some(min), Some(max)) => min + " <= " + symbol + " <= " + max
-      case ContinuousVar(symbol, None, Some(max)) => symbol + " <= " + max
-      case ContinuousVar(symbol, Some(min), None) => min + " <= " + symbol
+      case cv@ContinuousVar(symbol,_,_) if cv.isFree => symbol + " free "
+      case ContinuousVar(symbol, Some(min), Some(max)) => {
+        val minSym = if (min == Double.NegativeInfinity) "-Inf" else min
+        val maxSym = if (max == Double.PositiveInfinity) "Inf" else max
+        minSym + " <= " + symbol + " <= " + maxSym
+      }
+      case ContinuousVar(symbol, None, Some(max)) => {
+        val maxSym = if (max == Double.PositiveInfinity) "Inf" else max
+        symbol + " <= " + maxSym
+      }
+      case ContinuousVar(symbol, Some(min), None) => {
+        val minSym = if (min == Double.NegativeInfinity) "-Inf" else min
+        minSym + " <= " + symbol
+      }
       case _ => throw new IllegalStateException() // Never happened due to the filter
-    }.map( " " + _)
+    }.map( " " + _).toList
 
     // TODO: Generals (For integer vars)
 
     val end: String = "End"
 
-    Success(goalLp :: lps ++ (bounds :+ end), Nil)
+    Success(goalLp :: lps ++ (("Bounds" :: continuousBounds) :+ end), Nil)
 
   }
 
