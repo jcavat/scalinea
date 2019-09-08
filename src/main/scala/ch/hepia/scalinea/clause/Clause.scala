@@ -59,21 +59,20 @@ sealed trait Var {
 sealed trait NumVar extends Var {
   def minBound: Option[Value]
   def maxBound: Option[Value]
-  def isBounded: Boolean = false //TODO: Choose meaningful default
+  def isBounded: Boolean = minBound.isDefined || maxBound.isDefined
 }
-case class BVar( symbol: String ) extends Var {
+case class BinaryVar(symbol: String ) extends Var {
   type Value = Boolean
 }
-case class IVar( symbol: String, minBound: Option[Int], maxBound: Option[Int] )
-    extends NumVar {
+case class IntegerVar(symbol: String, minBound: Option[Int], maxBound: Option[Int] ) extends NumVar {
   type Value = Int
 }
-case class CVar(symbol: String, minBound: Option[Double] = None, maxBound: Option[Double] = None) extends NumVar{
+case class ContinuousVar(symbol: String, minBound: Option[Double] = None, maxBound: Option[Double] = None) extends NumVar {
   type Value = Double
   private def isMinBoundInfinity : Boolean = minBound.isDefined && minBound.get == Double.NegativeInfinity
   private def isMaxBoundInfinity : Boolean = maxBound.isDefined && maxBound.get == Double.PositiveInfinity
   def isFree: Boolean = isMinBoundInfinity && isMaxBoundInfinity
-  override def isBounded: Boolean = !isFree && (minBound.isDefined || maxBound.isDefined)
+  override def isBounded: Boolean = !isFree && super.isBounded
 }
 
 case class Vars(value: Map[Var, Exponent]) {
@@ -161,7 +160,7 @@ object Terms {
   def empty: Terms = Terms( Map() )
 
   def singleVar( symb: String, minBound: Option[Double] = None, maxBound: Option[Double] ): Terms = {
-    Terms( Map( Vars.singleVar(CVar(symb, minBound, maxBound)) -> NonZeroConstant.one ) )
+    Terms( Map( Vars.singleVar(ContinuousVar(symb, minBound, maxBound)) -> NonZeroConstant.one ) )
   }
 
   implicit val canShow = Show.instance[Terms]{ ts =>
