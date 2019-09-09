@@ -91,16 +91,16 @@ object LPFormat extends Format[Iterable[String]] {
     }.map {
       case cv@ContinuousVar(symbol,_,_) if cv.isFree => symbol + " free "
       case ContinuousVar(symbol, Some(min), Some(max)) => {
-        val minSym = if (min == Double.NegativeInfinity) "-Inf" else min
-        val maxSym = if (max == Double.PositiveInfinity) "Inf" else max
+        val minSym = if (min == Double.NegativeInfinity) "-Inf" else min.toString
+        val maxSym = if (max == Double.PositiveInfinity) "Inf" else max.toString
         minSym + " <= " + symbol + " <= " + maxSym
       }
       case ContinuousVar(symbol, None, Some(max)) => {
-        val maxSym = if (max == Double.PositiveInfinity) "Inf" else max
+        val maxSym = if (max == Double.PositiveInfinity) "Inf" else max.toString
         symbol + " <= " + maxSym
       }
       case ContinuousVar(symbol, Some(min), None) => {
-        val minSym = if (min == Double.NegativeInfinity) "-Inf" else min
+        val minSym = if (min == Double.NegativeInfinity) "-Inf" else min.toString
         minSym + " <= " + symbol
       }
       case _ => throw new IllegalStateException() // Never happened due to the filter
