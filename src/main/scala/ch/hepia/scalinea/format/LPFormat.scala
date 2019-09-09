@@ -78,7 +78,7 @@ object LPFormat extends Format[Iterable[String]] {
     }
   }
   def constraintsLpSection(system: clause.System): List[String] = {
-    "Subject To" :: system.constraints.map {
+    val constraints = system.constraints.map {
       case Clause(ts, sign) => {
 
         // If constant exists in terms, put it on the right side of que constraint equation
@@ -96,10 +96,11 @@ object LPFormat extends Format[Iterable[String]] {
       case (line, index) if line.contains("[") => " qc" + index + ": " + line // quadratic
       case (line, index) => " c" + index + ": " + line
     }
+    if (constraints.isEmpty) Nil else "Subject To" :: constraints
   }
 
   def boundsLpSection(system: clause.System): List[String] = {
-    "Bounds" :: system.vars.filter{
+    val bounds = system.vars.filter{
       case v@ContinuousVar(_,_,_) if v.isBounded => true
       case v@IntegerVar(_,_,_) if v.isBounded => true
       case _ => false
@@ -126,6 +127,8 @@ object LPFormat extends Format[Iterable[String]] {
       }
       case _ => throw new IllegalStateException() // Never happened due to the filter
     }.map( " " + _).toList
+
+    if (bounds.isEmpty) Nil else "Bounds" +: bounds
   }
   def generalsLpSection(system: System): List[String] = {
     val vars = system.vars.filter {
@@ -136,7 +139,8 @@ object LPFormat extends Format[Iterable[String]] {
       case _ => throw new IllegalStateException() // Never happened due to the filter
     }.mkString(" ")
 
-    List("General", " " + vars)
+    if (vars.isEmpty) Nil else List("General", " " + vars)
+
   }
   def binariesLpSection(system: System): List[String] = {
     val vars = system.vars.filter {
@@ -147,7 +151,7 @@ object LPFormat extends Format[Iterable[String]] {
       case _ => throw new IllegalStateException() // Never happened due to the filter
     }.mkString(" ")
 
-    List("Binary", " " + vars)
+    if (vars.isEmpty) Nil else List("Binary", " " + vars)
   }
 
 }

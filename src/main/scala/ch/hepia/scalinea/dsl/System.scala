@@ -84,7 +84,8 @@ object SysDemo extends App {
       x >= 1,
       y >= 10,
       i + t <= 30,
-      b <= i
+      b <= i,
+      i > 2* x
     ).constraints(
       z <= y,
       t <= 11.4
@@ -97,6 +98,11 @@ object SysDemo extends App {
   solver.solve(system)
  
   showFmt( system )
+
+  /*
+   * TODO: Check if max column in lp file
+   * TODO: Check if a + -b will failed
+   */
 
   /*
   trait AVar {
