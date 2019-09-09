@@ -3,7 +3,6 @@ package format
 
 import ch.hepia.scalinea.clause.Sign._
 import ch.hepia.scalinea.clause._
-import ch.hepia.scalinea.dsl.System
 import ch.hepia.scalinea.dsl.System.{Maximize, Minimize}
 
 

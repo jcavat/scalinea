@@ -38,3 +38,6 @@ scalacOptions ++= Seq(
 )
 
 scalacOptions in (Compile, console) --= Seq("-Ywarn-unused:imports", "-Xfatal-warnings")
+
+libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.8"
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.8" % "test"
