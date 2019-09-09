@@ -137,7 +137,7 @@ object LPFormat extends Format[Iterable[String]] {
       case _ => throw new IllegalStateException() // Never happened due to the filter
     }.mkString(" ")
 
-    List("Generals", " " + vars)
+    List("General", " " + vars)
   }
   def binariesLpSection(system: System): List[String] = {
     val vars = system.vars.filter {
