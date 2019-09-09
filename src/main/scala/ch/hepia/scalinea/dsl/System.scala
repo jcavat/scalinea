@@ -101,7 +101,6 @@ object SysDemo extends App {
 
   /*
    * TODO: Check if max column in lp file
-   * TODO: Check if a + -b will failed
    */
 
   /*
