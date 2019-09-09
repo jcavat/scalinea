@@ -77,15 +77,19 @@ object SysDemo extends App {
     val y = Var("y").range(0,20.5)
     val z = Var("z").maxBound(40).minBound(Double.NegativeInfinity)
     val t = Var("t").free
+    val i = IVar("i").range(1, 5)
+    val b = BVar("b")
 
     dsl.System.define.constraints(
       x >= 1,
-      y >= 10
+      y >= 10,
+      i + t <= 30,
+      b <= i
     ).constraints(
       z <= y,
       t <= 11.4
     ).maximize(
-      x + y + z + t
+      x + y + z + t + i + b
     ).build
   }
 
@@ -94,5 +98,12 @@ object SysDemo extends App {
  
   showFmt( system )
 
-
+  /*
+  trait AVar {
+    type T
+  }
+  trait Solution {
+    def apply( v: AVar ): v.T
+  }
+  */
 }

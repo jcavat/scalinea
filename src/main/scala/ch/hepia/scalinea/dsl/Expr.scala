@@ -10,6 +10,8 @@ sealed trait Expr {
     case Const(v) if MathUtil.nonZero(v) => clause.Terms.constant( clause.NonZeroConstant(v).get )
     case Const(_) => clause.Terms.empty
     case Var(sym, minBound, maxBound) => clause.Terms.singleContinuousVar(sym, minBound, maxBound)
+    case IVar(sym, minBound, maxBound) => clause.Terms.singleIntegerVar(sym, minBound, maxBound)
+    case BVar(sym) => clause.Terms.singleBinaryVar(sym)
     case Add(lhs,rhs) => lhs.toTerms + rhs.toTerms
     case Mult(lhs,rhs) => lhs.toTerms * rhs.toTerms
   }
@@ -18,12 +20,25 @@ sealed trait Expr {
 case class Const(value: Double) extends Expr {
   override def isZero: Boolean = MathUtil.isZero(value)
 }
+
+// Default Continuous var
 case class Var(symbol: String, minBound: Option[Double] = None, maxBound: Option[Double] = None) extends Expr {
   def free: Var = copy( minBound = Some(Double.NegativeInfinity), maxBound = Some(Double.PositiveInfinity) )
   def minBound(min: Double): Var = copy( minBound=Some(min) )
   def maxBound(max: Double): Var = copy( maxBound=Some(max) )
   def range(min: Double, max: Double): Var = minBound(min).maxBound(max)
 }
+
+// Integer/generals var
+case class IVar(symbol: String, minBound: Option[Int] = None, maxBound: Option[Int] = None) extends Expr {
+  def minBound(min: Int): IVar = copy( minBound=Some(min) )
+  def maxBound(max: Int): IVar = copy( maxBound=Some(max) )
+  def range(min: Int, max: Int): IVar = minBound(min).maxBound(max)
+}
+
+// Boolean var
+case class BVar(symbol: String) extends Expr { }
+
 case class Add( lhs: Expr, rhs: Expr ) extends Expr
 case class Mult( lhs: Expr, rhs: Expr ) extends Expr
 

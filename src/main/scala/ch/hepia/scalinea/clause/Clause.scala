@@ -72,7 +72,6 @@ case class ContinuousVar(symbol: String, minBound: Option[Double] = None, maxBou
   def isMinBoundInfinity : Boolean = minBound.contains( Double.NegativeInfinity )
   def isMaxBoundInfinity : Boolean = maxBound.contains( Double.PositiveInfinity )
   def isFree: Boolean = isMinBoundInfinity && isMaxBoundInfinity
-  override def isBounded: Boolean = !isFree && super.isBounded
 }
 
 case class Vars(value: Map[Var, Exponent]) {

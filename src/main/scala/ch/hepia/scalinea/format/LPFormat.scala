@@ -2,7 +2,7 @@ package ch.hepia.scalinea
 package format
 
 import ch.hepia.scalinea.clause.Sign._
-import ch.hepia.scalinea.clause.{Clause, Sign, Terms, ContinuousVar, Vars}
+import ch.hepia.scalinea.clause._
 import ch.hepia.scalinea.dsl.System
 import ch.hepia.scalinea.dsl.System.{Maximize, Minimize}
 
@@ -52,24 +52,39 @@ object LPFormat extends Format[Iterable[String]] {
     }
   }
 
-  def apply( system: clause.System ):  Output[Iterable[String]] = {
-    val clauses: List[Clause] = system.constraints
-    val goal: System.GoalTerms = system.goal
-    val vars: Set[clause.Var] = system.vars
 
-    // Objective section
-    val goalLp: String = goal match {
+  def apply(system: clause.System ):  Output[Iterable[String]] = {
+
+    val goalLp: String = goalLpSection(system)
+
+    val lps: List[String] = constraintsLpSection(system)
+
+    val bounds: List[String] = boundsLpSection(system)
+
+    val generals: List[String] = generalsLpSection(system)
+
+    val binaries: List[String] = binariesLpSection(system)
+
+    val end: String = "End"
+
+    Success(goalLp :: lps ++ (bounds ::: ((generals ::: binaries) :+ end)), Nil)
+
+  }
+
+
+  def goalLpSection(system: clause.System): String = {
+    system.goal match {
       case Maximize(terms) => "Maximize\n obj: " + terms.toLp
       case Minimize(terms) => "Minimize\n obj: " + terms.toLp
     }
-
-    // Constraints section
-    val lps: List[String] = "Subject To" :: clauses.map {
-      case Clause(ts,sign) => {
+  }
+  def constraintsLpSection(system: clause.System): List[String] = {
+    "Subject To" :: system.constraints.map {
+      case Clause(ts, sign) => {
 
         // If constant exists in terms, put it on the right side of que constraint equation
-        ts.terms.get( Vars(Map()) ) match {
-          case Some( v ) =>
+        ts.terms.get(Vars(Map())) match {
+          case Some(v) =>
             Terms(ts.terms - Vars(Map())).toLp + " " +
               sign.toLp + " " + -v.value
 
@@ -82,11 +97,12 @@ object LPFormat extends Format[Iterable[String]] {
       case (line, index) if line.contains("[") => " qc" + index + ": " + line // quadratic
       case (line, index) => " c" + index + ": " + line
     }
+  }
 
-    // Bound Section
-    //  - Continuous vars
-    val continuousBounds: List[String] = vars.filter{
-      case v@ContinuousVar(_,_,_) if v.isBounded || v.isFree => true
+  def boundsLpSection(system: clause.System): List[String] = {
+    "Bounds" :: system.vars.filter{
+      case v@ContinuousVar(_,_,_) if v.isBounded => true
+      case v@IntegerVar(_,_,_) if v.isBounded => true
       case _ => false
     }.map {
       case cv@ContinuousVar(symbol,_,_) if cv.isFree => symbol + " free "
@@ -103,15 +119,36 @@ object LPFormat extends Format[Iterable[String]] {
         val minSym = if (min == Double.NegativeInfinity) "-Inf" else min.toString
         minSym + " <= " + symbol
       }
+        // minOp and maxOp cannot be both None
+      case IntegerVar(symbol, minOp, maxOp) => {
+        val minBound = minOp.map( _.toString + " <= " ).getOrElse("")
+        val maxBound = maxOp.map(" <= " + _.toString ).getOrElse("")
+        minBound + symbol + maxBound
+      }
       case _ => throw new IllegalStateException() // Never happened due to the filter
     }.map( " " + _).toList
+  }
+  def generalsLpSection(system: System): List[String] = {
+    val vars = system.vars.filter {
+      case iv@IntegerVar(_, _, _) => true
+      case _ => false
+    }.map {
+      case IntegerVar(symbol, _, _) => symbol
+      case _ => throw new IllegalStateException() // Never happened due to the filter
+    }.mkString(" ")
 
-    // TODO: Generals (For integer vars)
+    List("Generals", " " + vars)
+  }
+  def binariesLpSection(system: System): List[String] = {
+    val vars = system.vars.filter {
+      case ib@BinaryVar(_) => true
+      case _ => false
+    }.map {
+      case BinaryVar(symbol) => symbol
+      case _ => throw new IllegalStateException() // Never happened due to the filter
+    }.mkString(" ")
 
-    val end: String = "End"
-
-    Success(goalLp :: lps ++ (("Bounds" :: continuousBounds) :+ end), Nil)
-
+    List("Binary", " " + vars)
   }
 
 }
