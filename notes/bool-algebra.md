@@ -35,7 +35,7 @@ a CNF is a conjunction of disjunction clauses under the form `(X1 or X2 or X3) a
 
 ### Example
 
-`(x1 and y1) and (x2 and y2) and ... and (xn and yn)`
+`(x1 and y1) or (x2 and y2) or ... or (xn and yn)`
 
 can be transformed to
 
