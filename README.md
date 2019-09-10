@@ -1,4 +1,5 @@
 # Scalinea
+[![Build Status](https://travis-ci.com/jcavat/scalinea.svg?branch=master)](https://travis-ci.com/jcavat/scalinea)
 
 ## WIP
 
