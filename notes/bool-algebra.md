@@ -5,7 +5,7 @@
 | `x` is true | `x = 1`  |
 | `x` is false | `x = 0`  |
 | `x -> y` | `x <= y`  |
-| `x <-> y` | `x = y`  |
+| `x <-> y` (eq to `x -> y and y -> x`) | `x = y` (eq to `x <= y, y <= x`)  |
 | `!x -> y` | `(1-x) <= y`  |
 | `x or y` | `x + y >= 1`  |
 | `x and y` | `x + y = 2`  |
