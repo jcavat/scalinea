@@ -66,7 +66,13 @@ object LPFormat extends Format[Iterable[String]] {
 
     val end: String = "End"
 
-    Success(goalLp :: lps ++ (bounds ::: ((generals ::: binaries) :+ end)), Nil)
+    val finalLp = goalLp :: lps ++ (bounds ::: ((generals ::: binaries) :+ end))
+    val warnings = if(finalLp.exists( p => p.length > 255)) {
+      List("Line length is 255 char for some solvers, please check your solution carefully")
+    }else{
+      Nil
+    }
+    Success(finalLp, warnings)
 
   }
 
