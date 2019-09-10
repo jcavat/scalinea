@@ -2,8 +2,8 @@ package ch.hepia.scalinea
 package dsl
 
 import ch.hepia.scalinea.clause.Terms
-import ch.hepia.scalinea.format.Output
-import ch.hepia.scalinea.solver.{FakeLpSolver, Solver}
+import ch.hepia.scalinea.format.{Output, Success}
+import ch.hepia.scalinea.solver.{FakeLpSolver, Solution, Solver}
 
 
 object System {
@@ -85,7 +85,7 @@ object SysDemo extends App {
       y >= 10,
       i + t <= 30,
       b <= i,
-      i > 2* x
+      i >= 2* x
     ).constraints(
       z <= y,
       t <= 11.4
@@ -95,12 +95,21 @@ object SysDemo extends App {
   }
 
   val solver: Solver = FakeLpSolver
-  solver.solve(system)
+  val res: Output[Solution] = solver.solve(system)
+  res match {
+    case Success(sol: Solution, _) => {
+      println("*" * 10 + sol.status )
+      /* TODO: Use var outside the system to get the solution */
+      println( sol(Var("x")) )
+    }
+    case _ => println("oups")
+  }
  
   showFmt( system )
 
   /*
    * TODO: Check if max column in lp file
+   * TODO: LP Format seems do not love `<` and `>`, only `<=` and `>=`
    */
 
   /*
