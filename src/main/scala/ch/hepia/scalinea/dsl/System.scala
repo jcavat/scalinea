@@ -95,6 +95,9 @@ object SysDemo extends App {
     ).constraints(
       // a professor should work only one day
       for(p <- profs) yield sum(vars.filter( _.symbol.startsWith(s"${p}_") ) ) === 1
+    ).constraints(
+      // if p1 works on monday, p2 works on monday, too
+      mapVars("p1_mo") <= mapVars("p2_mo")
     ).maximize(
       sum(for {
         p <- profs
