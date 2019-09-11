@@ -4,7 +4,7 @@ package dsl
 import Ops._
 import ch.hepia.scalinea.clause.Terms
 import ch.hepia.scalinea.format.{Output, Success}
-import ch.hepia.scalinea.solver.{FakeLpSolver, Solution, Solver}
+import ch.hepia.scalinea.solver.{CbcLpSolver, LPResult, Solution, Solver}
 
 
 object System {
@@ -28,6 +28,9 @@ object System {
   ) {
 
     def constraints( cs: dsl.Constr* ): SysState[HasConstr,G] = {
+      copy( constr = constr ++ cs.toList )
+    }
+    def constraints( cs: Iterable[dsl.Constr] ): SysState[HasConstr,G] = {
       copy( constr = constr ++ cs.toList )
     }
 
@@ -73,49 +76,48 @@ object SysDemo extends App {
 
 
 
+  val profs = List("p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12")
+  val days = List("mo", "tu", "we", "th", "fr")
+  val pref = Map(
+    "p1" -> Seq(("mo", 3), ("tu", 2)).toMap
+  )
 
-  val x = Var("x").minBound(0).maxBound(10)
-  val y = Var("y").range(0,20.5)
-  val z = Var("z").maxBound(40).minBound(Double.NegativeInfinity)
-  val t = Var("t").free
-  val i = IVar("i").range(1, 5)
-  val b = BVar("b")
+  val vars: Seq[BVar] = for {
+    p <- profs
+    d <- days
+  } yield BVar(s"${p}_${d}")
+  val mapVars = vars.map( v => v.symbol -> v ).toMap
 
   val system: clause.System = {
-
-
     dsl.System.define.constraints(
-      x >= 1,
-      y >= 10,
-      i + t <= 30,
-      b <= i,
-      i >= 2* x
+      // it should have at least two professors per day
+      for(d <- days) yield sum(vars.filter( _.symbol.endsWith(s"_$d") ) ) >= 2
     ).constraints(
-      z <= y,
-      t <= 11.4
+      // a professor should work only one day
+      for(p <- profs) yield sum(vars.filter( _.symbol.startsWith(s"${p}_") ) ) === 1
     ).maximize(
-      //x + y + z + t + i + b + List(x,y,z).foldRight(Const(0): Expr)(_ + _)
-
-      x + y + z + t + i + b + sum(x,y,z) + sum(List(x,y,z))
-
+      sum(for {
+        p <- profs
+        d <- days
+        if pref.get(p).flatMap(prefProf => prefProf.get(d) ).isDefined
+      } yield pref(p)(d) * mapVars(s"${p}_$d")
+      )
     ).build
   }
 
-  val solver: Solver = FakeLpSolver
-  val res: Output[Solution] = solver.solve(system)
+  val solver: Solver = CbcLpSolver
+  val res: Output[LPResult] = solver.solve(system)
   res match {
     case Success(sol: Solution, _) => {
       println("*" * 10 + "\n" + sol.isOptimal )
-      for( v <- List(x,y,z,t) ) {
-        println( s"${v.symbol}: ${sol(v)}" )
+      for( v <- vars ) {
+        if (sol(v))
+          println( s"${v.symbol}: ${sol(v)}" )
       }
-      println( s"${i.symbol}: ${sol(i)}" )
-      println( s"${b.symbol}: ${sol(b)}" )
-
     }
     case _ => println("oups")
   }
- 
+
   showFmt( system )
 
 
