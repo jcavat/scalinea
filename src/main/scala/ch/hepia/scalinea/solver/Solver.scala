@@ -9,23 +9,23 @@ trait Solution {
   def apply(v: BVar): Boolean
   def apply(v: IVar): Int
   def apply(v: Var): Double
-  def status: LpStatus
+  def isOptimal: Boolean
 }
 
 sealed trait LpStatus
 case object Optimal extends LpStatus
+case object SubOptimal extends LpStatus
 case object Infeasible extends LpStatus
 case object Unbounded extends LpStatus
-case object SubOptimal extends LpStatus
 case object NotSolved extends LpStatus
 
-case class MapSolution(status: LpStatus, sol: Map[String, String]) extends Solution {
+case class MapSolution(isOptimal: Boolean, sol: Map[String, String]) extends Solution {
   def apply(v: BVar): Boolean = {
     val res = sol(v.symbol)
     if (res == "0") {
-      true
-    } else if (res == "1") {
       false
+    } else if (res == "1") {
+      true
     } else {
       throw new Exception("SHIT")
     }
@@ -73,7 +73,7 @@ object FakeLpSolver extends Solver {
     val lines: Iterator[String] = bufferedSol.getLines()
 
     val statusLine = lines.nextOption().map( _.split(" ")(0) ).getOrElse("")
-    val lpStatus = if(statusLine == "Optimal") Optimal else NotSolved
+    val status = statusLine == "Optimal"
 
     var res: List[(String, String)] = List()
 
@@ -84,7 +84,7 @@ object FakeLpSolver extends Solver {
 
     bufferedSol.close()
 
-    Success( MapSolution(lpStatus, res.toMap), Nil )
+    Success( MapSolution(status, res.toMap), Nil )
 
   }
 

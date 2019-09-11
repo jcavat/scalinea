@@ -1,6 +1,7 @@
 package ch.hepia.scalinea
 package dsl
 
+import Ops._
 import ch.hepia.scalinea.clause.Terms
 import ch.hepia.scalinea.format.{Output, Success}
 import ch.hepia.scalinea.solver.{FakeLpSolver, Solution, Solver}
@@ -55,7 +56,6 @@ object System {
     def empty: SysState[NoConstr,NoGoal] = new SysState(Nil,None)
   }
 
-
 }
 
 
@@ -70,15 +70,19 @@ object SysDemo extends App {
     }
   }
 
-  val system: clause.System = {
-    import Ops._
 
-    val x = Var("x").minBound(0).maxBound(10)
-    val y = Var("y").range(0,20.5)
-    val z = Var("z").maxBound(40).minBound(Double.NegativeInfinity)
-    val t = Var("t").free
-    val i = IVar("i").range(1, 5)
-    val b = BVar("b")
+
+
+
+  val x = Var("x").minBound(0).maxBound(10)
+  val y = Var("y").range(0,20.5)
+  val z = Var("z").maxBound(40).minBound(Double.NegativeInfinity)
+  val t = Var("t").free
+  val i = IVar("i").range(1, 5)
+  val b = BVar("b")
+
+  val system: clause.System = {
+
 
     dsl.System.define.constraints(
       x >= 1,
@@ -90,7 +94,10 @@ object SysDemo extends App {
       z <= y,
       t <= 11.4
     ).maximize(
-      x + y + z + t + i + b
+      //x + y + z + t + i + b + List(x,y,z).foldRight(Const(0): Expr)(_ + _)
+
+      x + y + z + t + i + b + sum(x,y,z) + sum(List(x,y,z))
+
     ).build
   }
 
@@ -98,18 +105,27 @@ object SysDemo extends App {
   val res: Output[Solution] = solver.solve(system)
   res match {
     case Success(sol: Solution, _) => {
-      println("*" * 10 + sol.status )
-      /* TODO: Use var outside the system to get the solution */
-      println( sol(Var("x")) )
+      println("*" * 10 + "\n" + sol.isOptimal )
+      for( v <- List(x,y,z,t) ) {
+        println( s"${v.symbol}: ${sol(v)}" )
+      }
+      println( s"${i.symbol}: ${sol(i)}" )
+      println( s"${b.symbol}: ${sol(b)}" )
+
     }
     case _ => println("oups")
   }
  
   showFmt( system )
 
+
+
+
+
   /*
    * TODO: Check if max column in lp file
    * TODO: LP Format seems do not love `<` and `>`, only `<=` and `>=`
+   * TODO: Use var outside the system to get the solution
    */
 
   /*

@@ -21,8 +21,13 @@ case class Const(value: Double) extends Expr {
   override def isZero: Boolean = MathUtil.isZero(value)
 }
 
+sealed trait NamedVar extends Expr {
+  def symbol: String
+}
+sealed trait NumVar extends NamedVar
+
 // Default Continuous var
-case class Var(symbol: String, minBound: Option[Double] = None, maxBound: Option[Double] = None) extends Expr {
+case class Var(symbol: String, minBound: Option[Double] = None, maxBound: Option[Double] = None) extends NumVar {
   def free: Var = copy( minBound = Some(Double.NegativeInfinity), maxBound = Some(Double.PositiveInfinity) )
   def minBound(min: Double): Var = copy( minBound=Some(min) )
   def maxBound(max: Double): Var = copy( maxBound=Some(max) )
@@ -30,14 +35,14 @@ case class Var(symbol: String, minBound: Option[Double] = None, maxBound: Option
 }
 
 // Integer/generals var
-case class IVar(symbol: String, minBound: Option[Int] = None, maxBound: Option[Int] = None) extends Expr {
+case class IVar(symbol: String, minBound: Option[Int] = None, maxBound: Option[Int] = None) extends NumVar {
   def minBound(min: Int): IVar = copy( minBound=Some(min) )
   def maxBound(max: Int): IVar = copy( maxBound=Some(max) )
   def range(min: Int, max: Int): IVar = minBound(min).maxBound(max)
 }
 
 // Boolean var
-case class BVar(symbol: String) extends Expr { }
+case class BVar(symbol: String) extends NamedVar { }
 
 case class Add( lhs: Expr, rhs: Expr ) extends Expr
 case class Mult( lhs: Expr, rhs: Expr ) extends Expr
@@ -105,28 +110,8 @@ object Ops {
     def ===( rhs: Expr ) = Eq( Const(lhs), rhs )
   }
 
+  def sum( expr: Expr, exprs: Expr* ): Expr = exprs.foldLeft(expr)( _ + _ )
+  def sum( exprs: Iterable[Expr] ): Expr = exprs.reduceLeft( _ + _ )
 }
 
-object ExprDemo  extends App {
 
-  val x = Var("x")
-  val y = Var("y")
-  val z = Var("z")
-  val one = Const(1)
-
-  import Ops._
-
-  //val e = 2*x*x + 20 === 4*x - 3 + 3*x*y + 3*y + 18
-  val e = 3*x + 2*y + 0*z -4 >= -4
-
-  println(e)
-  
-  Show[clause.Clause].print(e.toClause)
-
-  val output = LPFormat( clause.System(List(e.toClause), Maximize((3*x).toTerms), Set()) )
-  output match {
-    case format.Success(results, _) => results.foreach( println )
-    case _ => //
-  }
-
-}
