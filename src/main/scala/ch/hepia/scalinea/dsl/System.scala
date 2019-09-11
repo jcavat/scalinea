@@ -30,9 +30,7 @@ object System {
     def constraints( cs: dsl.Constr* ): SysState[HasConstr,G] = {
       copy( constr = constr ++ cs.toList )
     }
-    def constraints( cs: Iterable[dsl.Constr] ): SysState[HasConstr,G] = {
-      copy( constr = constr ++ cs.toList )
-    }
+    def constraints( cs: Iterable[dsl.Constr] ): SysState[HasConstr,G] = constraints( cs.toSeq: _* )
 
     def minimize( expr: dsl.Expr )( implicit ev: G =:= NoGoal ): SysState[C,HasGoal] = {
       require( ev != null ) //Always true in order to remove warning
@@ -85,7 +83,7 @@ object SysDemo extends App {
   val vars: Seq[BVar] = for {
     p <- profs
     d <- days
-  } yield BVar(s"${p}_${d}")
+  } yield BVar(s"${p}_$d")
   val mapVars = vars.map( v => v.symbol -> v ).toMap
 
   val system: clause.System = {
@@ -132,13 +130,4 @@ object SysDemo extends App {
    * TODO: LP Format seems do not love `<` and `>`, only `<=` and `>=`
    * TODO: Use var outside the system to get the solution
    */
-
-  /*
-  trait AVar {
-    type T
-  }
-  trait Solution {
-    def apply( v: AVar ): v.T
-  }
-  */
 }
