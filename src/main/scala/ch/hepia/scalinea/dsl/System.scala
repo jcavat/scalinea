@@ -110,7 +110,7 @@ object SysDemo extends App {
   val res: Output[LPResult] = solver.solve(system)
   res match {
     case Success(sol: Solution, _) => {
-      println("*" * 10 + "\nOptimal: " + sol.isOptimal )
+      println("Optimal: " + sol.isOptimal )
       for( v <- vars.values ) {
         if (sol(v))
           println( s"${v.symbol}: ${sol(v)}" )
