@@ -3,9 +3,7 @@ package scalinea
 package solver
 
 import ch.hepia.scalinea.dsl.{BVar, IVar, Var}
-import ch.hepia.scalinea.format.{Failure, LPFormat, Output, Success}
-
-import scala.util.Try
+import ch.hepia.scalinea.format.Output
 
 sealed trait LPResult
 trait Solution  extends LPResult {

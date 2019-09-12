@@ -4,7 +4,7 @@ package dsl
 import Ops._
 import ch.hepia.scalinea.clause.Terms
 import ch.hepia.scalinea.format.{Output, Success}
-import ch.hepia.scalinea.solver.{CbcLpSolver, LPResult, Solution, Solver}
+import ch.hepia.scalinea.solver._
 
 
 object System {
