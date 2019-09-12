@@ -22,7 +22,7 @@ class LPFormatSpec extends FlatSpec with Matchers {
         x1 + x2 <= 20.0,
         2*x3 <= 2.0,
         x3 * x3 >= 0.0,
-        i < 2 * x2,
+        i <= 2 * x2,
         b <= i
       ).maximize(
         x1 + x2 + x3
@@ -42,7 +42,7 @@ class LPFormatSpec extends FlatSpec with Matchers {
       " c1: 1.0 x1 + 1.0 x2 <= 20.0",
       " c2: 2.0 x3 <= 2.0",
       " qc3: [ 1.0 x3 ^ 2 ] >= 0",
-      " c4: 1.0 i + -2.0 x2 < 0",
+      " c4: 1.0 i + -2.0 x2 <= 0",
       " c5: 1.0 b + -1.0 i <= 0")
     )
   }
@@ -70,7 +70,7 @@ class LPFormatSpec extends FlatSpec with Matchers {
             | c1: 1.0 x1 + 1.0 x2 <= 20.0
             | c2: 2.0 x3 <= 2.0
             | qc3: [ 1.0 x3 ^ 2 ] >= 0
-            | c4: 1.0 i + -2.0 x2 < 0
+            | c4: 1.0 i + -2.0 x2 <= 0
             | c5: 1.0 b + -1.0 i <= 0
             |Bounds
             | 2.0 <= x2
