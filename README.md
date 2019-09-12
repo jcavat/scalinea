@@ -46,7 +46,7 @@ solver.solve(system) match {
 
 - improve DSL for binary vars such as material implication, iif...
 - add new solvers (glpk, lp_solve, Cplex)
-- add more tests and more example
+- add more tests and more examples
 - create documentation
 
 
