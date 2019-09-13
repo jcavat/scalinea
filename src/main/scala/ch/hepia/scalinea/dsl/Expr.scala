@@ -34,6 +34,7 @@ case class IVar(symbol: String, minBound: Option[Int] = None, maxBound: Option[I
   def minBound(min: Int): IVar = copy( minBound=Some(min) )
   def maxBound(max: Int): IVar = copy( maxBound=Some(max) )
   def range(min: Int, max: Int): IVar = minBound(min).maxBound(max)
+  def range( r: Range): IVar = range( r.head, r.last )
 }
 
 // Boolean var
