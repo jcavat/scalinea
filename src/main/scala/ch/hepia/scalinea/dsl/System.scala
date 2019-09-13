@@ -1,9 +1,10 @@
 package ch.hepia.scalinea
 package dsl
 
+import Ops._
 import ch.hepia.scalinea.clause.Terms
-import ch.hepia.scalinea.format.Output
-import ch.hepia.scalinea.solver.{FakeLpSolver, Solver}
+import ch.hepia.scalinea.format.{Output, Success}
+import ch.hepia.scalinea.solver._
 
 
 object System {
@@ -29,6 +30,7 @@ object System {
     def constraints( cs: dsl.Constr* ): SysState[HasConstr,G] = {
       copy( constr = constr ++ cs.toList )
     }
+    def constraints( cs: Iterable[dsl.Constr] ): SysState[HasConstr,G] = constraints( cs.toSeq: _* )
 
     def minimize( expr: dsl.Expr )( implicit ev: G =:= NoGoal ): SysState[C,HasGoal] = {
       require( ev != null ) //Always true in order to remove warning
@@ -55,7 +57,6 @@ object System {
     def empty: SysState[NoConstr,NoGoal] = new SysState(Nil,None)
   }
 
-
 }
 
 
@@ -70,45 +71,61 @@ object SysDemo extends App {
     }
   }
 
+
+  val profs = List("p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12")
+  val days = List("mo", "tu", "we", "th", "fr")
+  val pref = Map(
+    "p1" -> Map("mo" -> 3, "tu" -> 2),
+    "p12" -> Map("th" -> 4, "fr" -> 1)
+  )
+
+  val vars = (for {
+    p <- profs
+    d <- days
+  } yield BVar(s"${p}_$d")).map( v => v.symbol -> v ).toMap
+
   val system: clause.System = {
-    import Ops._
-
-    val x = Var("x").minBound(0).maxBound(10)
-    val y = Var("y").range(0,20.5)
-    val z = Var("z").maxBound(40).minBound(Double.NegativeInfinity)
-    val t = Var("t").free
-    val i = IVar("i").range( 1 until 6 )
-    val b = BVar("b")
-
     dsl.System.define.constraints(
-      x >= 1,
-      y >= 10,
-      i + t <= 30,
-      b <= i,
-      i > 2* x
+      // it should have at least two professors per day
+      for(d <- days) yield sum(vars.values.filter( _.symbol.endsWith(s"_$d") ) ) >= 2
     ).constraints(
-      z <= y,
-      t <= 11.4
+      // a professor should work only one day
+      for(p <- profs) yield sum(vars.values.filter( _.symbol.startsWith(s"${p}_") ) ) === 1
+    ).constraints(
+      // if p1 works on monday, p2 works on monday, too
+      vars("p1_mo") <= vars("p2_mo")
     ).maximize(
-      x + y + z + t + i + b
+      sum(for {
+        p <- profs
+        d <- days
+        if pref.get(p).flatMap(prefProf => prefProf.get(d) ).isDefined
+      } yield pref(p)(d) * vars(s"${p}_$d")
+      )
     ).build
   }
 
-  val solver: Solver = FakeLpSolver
-  solver.solve(system)
- 
+  val solver: Solver = CbcLpSolver
+  val res: Output[LPResult] = solver.solve(system)
+  res match {
+    case Success(sol: Solution, _) => {
+      println("Optimal: " + sol.isOptimal )
+      for( v <- vars.values ) {
+        if (sol(v))
+          println( s"${v.symbol}: ${sol(v)}" )
+      }
+    }
+    case _ => println("oups")
+  }
+
   showFmt( system )
+
+
+
+
 
   /*
    * TODO: Check if max column in lp file
+   * TODO: LP Format seems do not love `<` and `>`, only `<=` and `>=`
+   * TODO: Use var outside the system to get the solution
    */
-
-  /*
-  trait AVar {
-    type T
-  }
-  trait Solution {
-    def apply( v: AVar ): v.T
-  }
-  */
 }
