@@ -17,7 +17,7 @@ object CbcLpSolver extends Solver {
       case Failure(_, _) => println("Oups")
     }
 
-    "cbc test.lp solve solu sol.txt && cat sol.txt".!
+    "cbc test.lp solve solu sol.txt".!
     val bufferedSol = Source.fromFile("sol.txt")
     val lines: Iterator[String] = bufferedSol.getLines()
 
@@ -28,7 +28,7 @@ object CbcLpSolver extends Solver {
 
     for(line <- lines) {
       val cols = line.strip().split(" ").filter( !_.isBlank )
-      res +:= ((cols(1), cols(2)): (String, String))
+      res +:= cols(1)->cols(2)
     }
 
     bufferedSol.close()

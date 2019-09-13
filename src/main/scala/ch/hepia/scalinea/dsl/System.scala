@@ -79,27 +79,30 @@ object SysDemo extends App {
     "p12" -> Map("th" -> 4, "fr" -> 1)
   )
 
-  val vars = (for {
+  val vars: Map[String,BVar] = (for {
     p <- profs
     d <- days
   } yield BVar(s"${p}_$d")).map( v => v.symbol -> v ).toMap
 
+  private def getPref( prof: String, day: String ): Int = 
+    pref.get(prof).flatMap(prefProf => prefProf.get(day) ).getOrElse(0)
+
+
   val system: clause.System = {
     dsl.System.define.constraints(
       // it should have at least two professors per day
-      for(d <- days) yield sum(vars.values.filter( _.symbol.endsWith(s"_$d") ) ) >= 2
-    ).constraints(
+      days.map{ d=> sum(vars.values.filter( _.symbol.endsWith(s"_$d") ) ) >= 2 } ++
       // a professor should work only one day
-      for(p <- profs) yield sum(vars.values.filter( _.symbol.startsWith(s"${p}_") ) ) === 1
-    ).constraints(
-      // if p1 works on monday, p2 works on monday, too
-      vars("p1_mo") <= vars("p2_mo")
+      profs.map{ p => sum(vars.values.filter( _.symbol.startsWith(s"${p}_") ) ) === 1} :+
+
+      ( vars("p1_mo") <= vars("p2_mo") )
     ).maximize(
       sum(for {
         p <- profs
         d <- days
-        if pref.get(p).flatMap(prefProf => prefProf.get(d) ).isDefined
-      } yield pref(p)(d) * vars(s"${p}_$d")
+        prefW = getPref(p,d)
+        if prefW != 0.0
+      } yield prefW * vars(s"${p}_$d")
       )
     ).build
   }
