@@ -9,7 +9,7 @@ import ch.hepia.scalinea.solver._
 
 object System {
 
-  def define = SysState.empty
+  def define: SysState[NoConstr, NoGoal] = SysState.empty
 
   sealed trait Constr
   sealed trait NoConstr extends Constr

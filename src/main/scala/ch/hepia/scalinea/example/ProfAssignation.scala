@@ -1,9 +1,8 @@
 package ch.hepia.scalinea.example
 
-import ch.hepia.scalinea.dsl.BVar
+import ch.hepia.scalinea.dsl.{BVar, Constr, Expr, Ops}
 import ch.hepia.scalinea.format.{Output, Success}
 import ch.hepia.scalinea.solver.{CbcLpSolver, LPResult, Solution, Solver}
-
 import ch.hepia.scalinea.dsl
 import ch.hepia.scalinea.dsl.Ops._
 
@@ -16,27 +15,34 @@ object ProfAssignation extends App {
     "p12" -> Map("th" -> 4, "fr" -> 1)
   )
 
-  val vars = (for {
+  /*
+  val vars: Map[String, BVar] = (for {
     p <- profs
     d <- days
   } yield BVar(s"${p}_$d")).map( v => v.symbol -> v ).toMap
+  */
+  val vars: Map[String, Map[String, BVar]] = profs.map( p => p -> days.map( d => d -> BVar(s"${p}_$d")).toMap ).toMap
 
   val system = {
     dsl.System.define.constraints(
       // it should have at least two professors per day
-      for(d <- days) yield sum(vars.values.filter( _.symbol.endsWith(s"_$d") ) ) >= 2
+      forAll(days){ d =>
+        sum(profs)( p => vars(p)(d) ) >= 2
+      }
+
     ).constraints(
       // a professor should work only one day
-      for(p <- profs) yield sum(vars.values.filter( _.symbol.startsWith(s"${p}_") ) ) === 1
+      for(p <- profs)
+        yield sum( days.map( d => vars(p)(d)) ) === 1
     ).constraints(
       // if p1 works on monday, p2 works on monday, too
-      vars("p1_mo") <= vars("p2_mo")
+      vars("p1")("mo") <= vars("p2")("mo")
     ).maximize(
       sum(for {
         p <- profs
         d <- days
         if pref.get(p).flatMap(prefProf => prefProf.get(d) ).isDefined
-      } yield pref(p)(d) * vars(s"${p}_$d")
+      } yield pref(p)(d) * vars(p)(d)
       )
     ).build
   }
@@ -46,9 +52,11 @@ object ProfAssignation extends App {
   res match {
     case Success(sol: Solution, _) => {
       println("Optimal: " + sol.isOptimal )
-      for( v <- vars.values ) {
-        if (sol(v))
-          println( s"${v.symbol}: ${sol(v)}" )
+      for( p <- profs; d <- days ) {
+        val v = vars(p)(d)
+        if (sol(v)) {
+          println(s"$p is assigned to $d")
+        }
       }
     }
     case _ => println("oups")

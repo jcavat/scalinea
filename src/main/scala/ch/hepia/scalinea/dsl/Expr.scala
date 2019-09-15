@@ -113,6 +113,8 @@ object Ops {
 
   def sum( expr: Expr, exprs: Expr* ): Expr = exprs.foldLeft(expr)( _ + _ )
   def sum( exprs: Iterable[Expr] ): Expr = exprs.reduceLeft( _ + _ )
+  def sum[T]( exprs: Iterable[T] )(f: T => Expr): Expr = exprs.map(f).reduceLeft( _ + _ )
+  def forAll[T](vs: Iterable[T])(f: T => dsl.Constr): Iterable[dsl.Constr] = vs.map(f)
 }
 
 
