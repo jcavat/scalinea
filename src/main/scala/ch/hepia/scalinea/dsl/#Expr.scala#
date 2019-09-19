@@ -42,18 +42,15 @@ case class IVar(symbol: String, minBound: Option[Int] = None, maxBound: Option[I
   def range( r: Range): IVar = range( r.head, r.last )
 }
 
-
 case class Add( lhs: Expr, rhs: Expr ) extends Expr
 case class Mult( lhs: Expr, rhs: Expr ) extends Expr
-
-
 
 sealed trait BExpr extends Constr {
   import BExpr.CNF
   /*private def merge( lhs: List[CNF], rhs: List[CNF] ): List[CNF] = {
     MapUtil.mergeOpt( lhs.vars, rhs.vars,
   }*/
-  def normalize: List[CNF] = this match {
+/*  def normalize: List[CNF] = this match {
     case b:BVar => List( CNF.single(b,true) )
     case Not(b:BVar) => List( CNF.single(b,false) )
     case Not(Not(bexpr)) => bexpr.normalize
@@ -71,7 +68,12 @@ sealed trait BExpr extends Constr {
     case Or( x, And(y,z) ) => And( Or(x,y), Or(x,z) ).normalize
     case Or( lhs, rhs ) => merge( lhs.normalize,  rhs.normalize )
 
-  }
+ }*/
+
+  def normalize: List[CNF] = ???
+
+  private def normalize0: BExpr0
+
 
   def toNumeric: List[Constr] = ???
 

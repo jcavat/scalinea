@@ -44,7 +44,7 @@ object System {
 
     def build( implicit ev0: C =:= HasConstr, ev1: G =:= HasGoal ): clause.System = {
       require( ev0 != null && ev1 != null ) //Always true in order to remove warning
-      val clauses = constr.map(_.toClause)
+      val clauses = constr.flatMap(_.toClause)
       val vars: List[clause.Var] = for {
         clause <- clauses
         sortedVars <- clause.terms.sortedVars
@@ -91,10 +91,12 @@ object SysDemo extends App {
   val system: clause.System = {
     dsl.System.define.constraints(
       // it should have at least two professors per day
-      days.map{ d=> sum(vars.values.filter( _.symbol.endsWith(s"_$d") ) ) >= 2 } ++
+      days.map{ d=> sum(vars.values.filter( _.symbol.endsWith(s"_$d") ) ) >= 2 }
+    ).constraints(
       // a professor should work only one day
-      profs.map{ p => sum(vars.values.filter( _.symbol.startsWith(s"${p}_") ) ) === 1} :+
-
+      profs.map{ p => sum(vars.values.filter( _.symbol.startsWith(s"${p}_") ) ) === 1}
+    ).constraints(
+      //if p1 works on monday, p2 works on monday too
       ( vars("p1_mo") <= vars("p2_mo") )
     ).maximize(
       sum(for {
