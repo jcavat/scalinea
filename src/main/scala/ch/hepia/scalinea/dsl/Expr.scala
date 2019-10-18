@@ -7,10 +7,13 @@ import util.{MathUtil, Show}
 
 sealed trait Expr {
   def toTerms: clause.Terms = this match {
-    case Const(v) if MathUtil.nonZero(v) => clause.Terms.constant( clause.NonZeroConstant(v).get )
+    case Const(v) if MathUtil.nonZero(v) =>
+      clause.Terms.constant( clause.NonZeroConstant(v).get )
     case Const(_) => clause.Terms.empty
-    case Var(sym, minBound, maxBound) => clause.Terms.singleContinuousVar(sym, minBound, maxBound)
-    case IVar(sym, minBound, maxBound) => clause.Terms.singleIntegerVar(sym, minBound, maxBound)
+    case Var(sym, minBound, maxBound) =>
+      clause.Terms.singleContinuousVar(sym, minBound, maxBound)
+    case IVar(sym, minBound, maxBound) =>
+      clause.Terms.singleIntegerVar(sym, minBound, maxBound)
     case BVar(sym) => clause.Terms.singleBinaryVar(sym)
     case Add(lhs,rhs) => lhs.toTerms + rhs.toTerms
     case Mult(lhs,rhs) => lhs.toTerms * rhs.toTerms
@@ -42,17 +45,19 @@ case class IVar(symbol: String, minBound: Option[Int] = None, maxBound: Option[I
   def range( r: Range): IVar = range( r.head, r.last )
 }
 
-
 case class Add( lhs: Expr, rhs: Expr ) extends Expr
 case class Mult( lhs: Expr, rhs: Expr ) extends Expr
 
 
-
 sealed trait BExpr extends Constr {
   import BExpr.CNF
-  /*private def merge( lhs: List[CNF], rhs: List[CNF] ): List[CNF] = {
-    MapUtil.mergeOpt( lhs.vars, rhs.vars,
-  }*/
+  private def merge( lhs: CNF, rhs: CNF ): CNF = {
+    val vars2 = util.MapUtil.mergeOpt( lhs.vars, rhs.vars, { (b1:Boolean,b2:Boolean) =>
+      if( b1 == b2 ) Some(b1)
+      else None
+    })
+    CNF( vars2 )
+  }
   def normalize: List[CNF] = this match {
     case b:BVar => List( CNF.single(b,true) )
     case Not(b:BVar) => List( CNF.single(b,false) )
@@ -66,11 +71,17 @@ sealed trait BExpr extends Constr {
     ).normalize
     case Implies(lhs,rhs) => Or(Not(lhs),rhs).normalize
     case Iff(lhs,rhs) => And(Implies(lhs,rhs),Implies(rhs,lhs)).normalize
-    case And( lhs, rhs ) => lhs.normalize ++ rhs.normalize
+    case And( lhs, rhs ) => lhs.normalize ++ rhs.normalize //TODO: Check not satisfiable
     case Or( And(x,y), z ) => And( Or(x,z), Or(y,z) ).normalize
     case Or( x, And(y,z) ) => And( Or(x,y), Or(x,z) ).normalize
-    case Or( lhs, rhs ) => merge( lhs.normalize,  rhs.normalize )
-
+    case Or( lhs, rhs ) => {
+      val lhsN: List[CNF] = lhs.normalize
+      val rhsN: List[CNF] = rhs.normalize
+      for {
+        l <- lhsN
+        r <- rhsN
+      } yield merge(l,r)
+    }
   }
 
   def toNumeric: List[Constr] = ???
@@ -85,14 +96,8 @@ object BExpr {
   }
 }
 
-sealed trait BExpr0
-sealed trait BExpr1
-case class And0( lhs: BExpr0, rhs: BExpr0 ) extends BExpr0
-case class Or0( lhs: BExpr1, rhs: BExpr1 ) extends BExpr0 with BExpr1
-case class Not1( bvar: BVar ) extends BExpr1
-
 // Boolean var
-case class BVar(symbol: String) extends NamedVar with BExpr with BExpr1
+case class BVar(symbol: String) extends NamedVar with BExpr
 case class Or( lhs: BExpr, rhs: BExpr ) extends BExpr
 case class And( lhs: BExpr, rhs: BExpr ) extends BExpr
 case class Not( expr: BExpr ) extends BExpr
