@@ -84,7 +84,19 @@ sealed trait BExpr extends Constr {
     }
   }
 
-  def toNumeric: List[Constr] = ???
+  def toNumeric: List[Constr] = {
+    import Ops._
+    normalize.map { cnf =>
+      val vars = cnf.vars
+      val lhs = vars.map {
+        case (v,true) => v
+        case (v,false) => -v
+      }.reduce( _ + _ )
+
+      val rhs = vars.count{ case (_,b) => !b }
+      lhs >= rhs
+    }
+  }
 
   override def toClause: List[clause.Clause] =
     toNumeric.flatMap( _.toClause )
