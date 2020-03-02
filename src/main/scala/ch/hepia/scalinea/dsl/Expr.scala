@@ -52,15 +52,15 @@ case class Mult( lhs: Expr, rhs: Expr ) extends Expr
 sealed trait BExpr extends Constr {
   import BExpr.CNF
   private def merge( lhs: CNF, rhs: CNF ): CNF = {
-    val vars2 = util.MapUtil.mergeOpt( lhs.vars, rhs.vars, { (b1:Boolean,b2:Boolean) =>
+    val vars2: Map[BVar, Boolean] = util.MapUtil.mergeOpt( lhs.vars, rhs.vars, { (b1:Boolean, b2:Boolean) =>
       if( b1 == b2 ) Some(b1)
       else None
     })
     CNF( vars2 )
   }
   def normalize: List[CNF] = this match {
-    case b:BVar => List( CNF.single(b,true) )
-    case Not(b:BVar) => List( CNF.single(b,false) )
+    case b:BVar => List( CNF.single(b, sign = true) )
+    case Not(b:BVar) => List( CNF.single(b, sign = false) )
     case Not(Not(bexpr)) => bexpr.normalize
     case Not( Or(lhs,rhs) ) => And(Not(lhs),Not(rhs)).normalize
     case Not( And(lhs,rhs) ) => Or(Not(lhs),Not(rhs)).normalize
@@ -90,16 +90,19 @@ sealed trait BExpr extends Constr {
       val vars = cnf.vars
       val lhs = vars.map {
         case (v,true) => v
-        case (v,false) => -v
+        case (v,false) => 1-v
       }.reduce( _ + _ )
 
-      val rhs = vars.count{ case (_,b) => !b }
-      lhs >= rhs
+      lhs >= 1
     }
   }
 
-  override def toClause: List[clause.Clause] =
+  override def toClause: List[clause.Clause] = {
+    println( toNumeric )
+    println(toNumeric.flatMap( _.toClause ) )
+
     toNumeric.flatMap( _.toClause )
+  }
 }
 object BExpr {
   case class CNF( vars: Map[BVar,Boolean] )
@@ -143,6 +146,13 @@ case class Eq(lhs: Expr, rhs: Expr) extends Constr
 
 object Ops {
 
+  implicit class RichBooleanExpr( lhs: BExpr ) {
+    def `imply`(rhs: BExpr) = Implies(lhs, rhs)
+    def `iif`(rhs: BExpr) = Iff(lhs, rhs)
+    def &(rhs: BExpr) = And(lhs, rhs)
+    def |(rhs: BExpr) = Or(lhs, rhs)
+    def unary_! = Not(lhs)
+  }
   implicit class RichExpr( lhs: Expr ) {
     def +( rhs: Expr ) = Add( lhs, rhs )
     def +( rhs: Double ) = Add( lhs, Const(rhs) )
@@ -183,6 +193,10 @@ object Ops {
 
   def sum( expr: Expr, exprs: Expr* ): Expr = exprs.foldLeft(expr)( _ + _ )
   def sum( exprs: Iterable[Expr] ): Expr = exprs.reduceLeft( _ + _ )
+  def or( exprs: Iterable[BExpr] ): BExpr = exprs.reduceLeft( _ | _ )
+  def or( exprs: BExpr* ): BExpr = exprs.reduceLeft( _ | _ )
+  def and( exprs: Iterable[BExpr] ): BExpr = exprs.reduceLeft( _ & _ )
+  def and( exprs: BExpr* ): BExpr = exprs.reduceLeft( _ & _ )
 }
 
 
