@@ -58,37 +58,50 @@ sealed trait BExpr extends Constr {
     })
     CNF( vars2 )
   }
-  def normalize: List[CNF] = this match {
-    case b:BVar => List( CNF.single(b, sign = true) )
-    case Not(b:BVar) => List( CNF.single(b, sign = false) )
-    case Not(Not(bexpr)) => bexpr.normalize
-    case Not( Or(lhs,rhs) ) => And(Not(lhs),Not(rhs)).normalize
-    case Not( And(lhs,rhs) ) => Or(Not(lhs),Not(rhs)).normalize
-    case Not( Implies(lhs,rhs) ) => And( lhs, Not(rhs) ).normalize
-    case Not( Iff(lhs,rhs) ) => Or(
-      And(lhs,Not(rhs)),
-      And(rhs,Not(lhs))
-    ).normalize
-    case Implies(lhs,rhs) => Or(Not(lhs),rhs).normalize
-    case Iff(lhs,rhs) => And(Implies(lhs,rhs),Implies(rhs,lhs)).normalize
-    case And( lhs, rhs ) => lhs.normalize ++ rhs.normalize //TODO: Check not satisfiable
-    case Or( And(x,y), z ) => And( Or(x,z), Or(y,z) ).normalize
-    case Or( x, And(y,z) ) => And( Or(x,y), Or(x,z) ).normalize
-    case Or( lhs, rhs ) => {
-      val lhsN: List[CNF] = lhs.normalize
-      val rhsN: List[CNF] = rhs.normalize
-      for {
-        l <- lhsN
-        r <- rhsN
-      } yield merge(l,r)
+  def normalize: List[CNF] = {
+    pprint.pprintln("*"*30)
+    pprint.pprintln(this)
+    val res = this match {
+      case b:BVar => List( CNF.single(b, sign = true) )
+      case Not(b:BVar) => List( CNF.single(b, sign = false) )
+      case Not(Not(bexpr)) => bexpr.normalize
+      case Not( Or(lhs,rhs) ) => And(Not(lhs),Not(rhs)).normalize
+      case Not( And(lhs,rhs) ) => Or(Not(lhs),Not(rhs)).normalize
+      case Not( Implies(lhs,rhs) ) => And( lhs, Not(rhs) ).normalize
+      case Not( Iff(lhs,rhs) ) => Or(
+        And(lhs,Not(rhs)),
+        And(rhs,Not(lhs))
+      ).normalize
+      case Implies(lhs,rhs) => Or(Not(lhs),rhs).normalize
+      case Iff(lhs,rhs) => And(Implies(lhs,rhs),Implies(rhs,lhs)).normalize
+      case And( lhs, rhs ) => {
+        val r1 = lhs.normalize
+        val r2 = rhs.normalize
+        val res = r1 ++ r2
+        res
+      } //TODO: Check not satisfiable
+      case Or( And(x,y), z ) => And( Or(x,z), Or(y,z) ).normalize
+      case Or( x, And(y,z) ) => And( Or(x,y), Or(x,z) ).normalize
+      case Or( lhs, rhs ) => {
+        val lhsN: List[CNF] = lhs.normalize
+        val rhsN: List[CNF] = rhs.normalize
+        val res = for {
+          l <- lhsN
+          r <- rhsN
+        } yield merge(l,r)
+
+        // If tautology, result could be empty
+        res.filter( cnf => !cnf.vars.isEmpty)
+      }
     }
+    res
   }
 
-  def toNumeric: List[Constr] = {
+  private def toNumeric: List[Constr] = {
     import Ops._
     normalize.map { cnf =>
-      val vars = cnf.vars
-      val lhs = vars.map {
+      val vars: Map[BVar, Boolean] = cnf.vars
+      val lhs: Expr = vars.map {
         case (v,true) => v
         case (v,false) => 1-v
       }.reduce( _ + _ )
@@ -98,9 +111,6 @@ sealed trait BExpr extends Constr {
   }
 
   override def toClause: List[clause.Clause] = {
-    println( toNumeric )
-    println(toNumeric.flatMap( _.toClause ) )
-
     toNumeric.flatMap( _.toClause )
   }
 }
@@ -191,12 +201,25 @@ object Ops {
     def ===( rhs: Expr ) = Eq( Const(lhs), rhs )
   }
 
-  def sum( expr: Expr, exprs: Expr* ): Expr = exprs.foldLeft(expr)( _ + _ )
+  // TODO: Add first elem in a list
   def sum( exprs: Iterable[Expr] ): Expr = exprs.reduceLeft( _ + _ )
   def or( exprs: Iterable[BExpr] ): BExpr = exprs.reduceLeft( _ | _ )
   def or( exprs: BExpr* ): BExpr = exprs.reduceLeft( _ | _ )
   def and( exprs: Iterable[BExpr] ): BExpr = exprs.reduceLeft( _ & _ )
   def and( exprs: BExpr* ): BExpr = exprs.reduceLeft( _ & _ )
+
+  def exactlyOneOf( exprs: BExpr* ): BExpr = {
+    val e: Seq[BExpr] = exprs.map(bexpr => bexpr & !or(exprs.filter(_ != bexpr)))
+    or(e)
+  }
+
+  /*
+    a only b only c === a and not(or(b,c)) OR b and not(or(a,c)) OR ...
+
+1 0 0
+0 1 0
+0 0 1
+   */
 }
 
 

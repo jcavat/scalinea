@@ -45,9 +45,13 @@ object System {
     def build( implicit ev0: C =:= HasConstr, ev1: G =:= HasGoal ): clause.System = {
       require( ev0 != null && ev1 != null ) //Always true in order to remove warning
       val clauses = constr.flatMap(_.toClause)
+      val varsObjective = gopt.get match {
+        case Minimize(terms) => terms.sortedVars
+        case Maximize(terms) => terms.sortedVars
+      }
       val vars: List[clause.Var] = for {
         clause <- clauses
-        sortedVars <- clause.terms.sortedVars
+        sortedVars <- varsObjective :++ clause.terms.sortedVars //TODO: Find a different way to store all the variables
         v <- sortedVars.sortedVar
       } yield v
       clause.System( clauses, gopt.get, vars.toSet )
