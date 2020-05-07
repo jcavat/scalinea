@@ -7,10 +7,13 @@ import util.{MathUtil, Show}
 
 sealed trait Expr {
   def toTerms: clause.Terms = this match {
-    case Const(v) if MathUtil.nonZero(v) => clause.Terms.constant( clause.NonZeroConstant(v).get )
+    case Const(v) if MathUtil.nonZero(v) =>
+      clause.Terms.constant( clause.NonZeroConstant(v).get )
     case Const(_) => clause.Terms.empty
-    case Var(sym, minBound, maxBound) => clause.Terms.singleContinuousVar(sym, minBound, maxBound)
-    case IVar(sym, minBound, maxBound) => clause.Terms.singleIntegerVar(sym, minBound, maxBound)
+    case Var(sym, minBound, maxBound) =>
+      clause.Terms.singleContinuousVar(sym, minBound, maxBound)
+    case IVar(sym, minBound, maxBound) =>
+      clause.Terms.singleIntegerVar(sym, minBound, maxBound)
     case BVar(sym) => clause.Terms.singleBinaryVar(sym)
     case Add(lhs,rhs) => lhs.toTerms + rhs.toTerms
     case Mult(lhs,rhs) => lhs.toTerms * rhs.toTerms
@@ -42,24 +45,104 @@ case class IVar(symbol: String, minBound: Option[Int] = None, maxBound: Option[I
   def range( r: Range): IVar = range( r.head, r.last )
 }
 
-// Boolean var
-case class BVar(symbol: String) extends NamedVar { }
-
 case class Add( lhs: Expr, rhs: Expr ) extends Expr
 case class Mult( lhs: Expr, rhs: Expr ) extends Expr
+
+
+sealed trait BExpr extends Constr {
+  import BExpr.CNF
+  private def merge( lhs: CNF, rhs: CNF ): CNF = {
+    val merger: (Sign,Sign) => Option[Sign] = {
+      case (Sign.Negate, Sign.Negate) => Some(Sign.Negate)
+      case (Sign.Positive, Sign.Positive) => Some(Sign.Positive)
+      case _ => Some(Sign.Tautology)
+    }
+    val vars: Map[BVar, Sign] = util.MapUtil.mergeOpt(lhs.vars, rhs.vars, merger)
+    CNF( vars )
+  }
+  def normalize: List[CNF] = {
+    this match {
+      case b:BVar => List( CNF.single(b, sign = Sign.Positive) )
+      case Not(b:BVar) => List( CNF.single(b, sign = Sign.Negate) )
+      case Not(Not(bexpr)) => bexpr.normalize
+      case Not( Or(lhs,rhs) ) => And(Not(lhs),Not(rhs)).normalize
+      case Not( And(lhs,rhs) ) => Or(Not(lhs),Not(rhs)).normalize
+      case Not( Implies(lhs,rhs) ) => And( lhs, Not(rhs) ).normalize
+      case Not( Iff(lhs,rhs) ) => Or(
+        And(lhs,Not(rhs)),
+        And(rhs,Not(lhs))
+      ).normalize
+      case Implies(lhs,rhs) => Or(Not(lhs),rhs).normalize
+      case Iff(lhs,rhs) => And(Implies(lhs,rhs),Implies(rhs,lhs)).normalize
+      case And( lhs, rhs ) => lhs.normalize ++ rhs.normalize //TODO: Check not satisfiable
+      case Or( And(x,y), z ) => And( Or(x,z), Or(y,z) ).normalize
+      case Or( x, And(y,z) ) => And( Or(x,y), Or(x,z) ).normalize
+      case Or( lhs, rhs ) => {
+        val lhsN: List[CNF] = lhs.normalize
+        val rhsN: List[CNF] = rhs.normalize
+        for {
+          l <- lhsN
+          r <- rhsN
+        } yield merge(l,r)
+      }
+    }
+  }
+
+  private def toNumeric: List[Constr] = {
+    import Ops._
+    normalize.map { cnf =>
+      val vars: Map[BVar, Sign] = cnf.vars
+      val lhs: Expr = vars.map {
+        case (v,Sign.Positive) => v
+        case (v,Sign.Negate) => 1-v
+        case (v,_) => 1-v + v //TODO: (v-v)
+      }.reduce( _ + _ )
+
+      lhs >= 1
+    }
+  }
+
+  override def toClause: List[clause.Clause] = {
+    toNumeric.flatMap( _.toClause )
+  }
+}
+
+sealed trait Sign
+object Sign {
+  case object Positive extends Sign
+  case object Negate extends Sign
+  case object Tautology extends Sign
+}
+
+object BExpr {
+  case class CNF( vars: Map[BVar,Sign] )
+  object CNF {
+    def single( bvar: BVar, sign: Sign ) = CNF( Map(bvar->sign) )
+  }
+}
+
+// Boolean var
+case class BVar(symbol: String) extends NamedVar with BExpr
+case class Or( lhs: BExpr, rhs: BExpr ) extends BExpr
+case class And( lhs: BExpr, rhs: BExpr ) extends BExpr
+case class Not( expr: BExpr ) extends BExpr
+case class Implies( lhs: BExpr, rhs: BExpr ) extends BExpr
+case class Iff( lhs: BExpr, rhs: BExpr ) extends BExpr
+
 
 sealed trait Constr {
   import Ops._
 
   private def makeClause( lhs: Expr, rhs: Expr, sign: clause.Sign ) =
-    clause.Clause( (lhs-rhs).toTerms, sign )
+    List( clause.Clause( (lhs-rhs).toTerms, sign ) )
 
-  def toClause: clause.Clause = this match {
+  def toClause: List[clause.Clause] = this match {
     case LessEq(lhs, rhs) => makeClause( lhs, rhs, clause.Sign.LessEq )
     case Less(lhs, rhs) => makeClause( lhs, rhs, clause.Sign.Less )
     case BigEq(lhs, rhs) => makeClause( lhs, rhs, clause.Sign.BigEq )
     case Big(lhs, rhs) => makeClause( lhs, rhs, clause.Sign.Big )
     case Eq(lhs, rhs) => makeClause( lhs, rhs, clause.Sign.Eq )
+    case be: BExpr => be.toClause
   }
 }
 
@@ -73,6 +156,13 @@ case class Eq(lhs: Expr, rhs: Expr) extends Constr
 
 object Ops {
 
+  implicit class RichBooleanExpr( lhs: BExpr ) {
+    def `imply`(rhs: BExpr) = Implies(lhs, rhs)
+    def `iif`(rhs: BExpr) = Iff(lhs, rhs)
+    def &(rhs: BExpr) = And(lhs, rhs)
+    def |(rhs: BExpr) = Or(lhs, rhs)
+    def unary_! = Not(lhs)
+  }
   implicit class RichExpr( lhs: Expr ) {
     def +( rhs: Expr ) = Add( lhs, rhs )
     def +( rhs: Double ) = Add( lhs, Const(rhs) )
@@ -111,10 +201,27 @@ object Ops {
     def ===( rhs: Expr ) = Eq( Const(lhs), rhs )
   }
 
-  def sum( expr: Expr, exprs: Expr* ): Expr = exprs.foldLeft(expr)( _ + _ )
+  // TODO: Add first elem in a list
   def sum( exprs: Iterable[Expr] ): Expr = exprs.reduceLeft( _ + _ )
   def sum[T]( exprs: Iterable[T] )(f: T => Expr): Expr = exprs.map(f).reduceLeft( _ + _ )
   def forAll[T](vs: Iterable[T])(f: T => dsl.Constr): Iterable[dsl.Constr] = vs.map(f)
+  def or( exprs: Iterable[BExpr] ): BExpr = exprs.reduceLeft( _ | _ )
+  def or( exprs: BExpr* ): BExpr = exprs.reduceLeft( _ | _ )
+  def and( exprs: Iterable[BExpr] ): BExpr = exprs.reduceLeft( _ & _ )
+  def and( exprs: BExpr* ): BExpr = exprs.reduceLeft( _ & _ )
+
+  def exactlyOneOf( exprs: BExpr* ): BExpr = {
+    val e: Seq[BExpr] = exprs.map(bexpr => bexpr & !or(exprs.filter(_ != bexpr)))
+    or(e)
+  }
+
+  /*
+    a only b only c === a and not(or(b,c)) OR b and not(or(a,c)) OR ...
+
+1 0 0
+0 1 0
+0 0 1
+   */
 }
 
 

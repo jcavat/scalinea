@@ -4,7 +4,9 @@ name := "scalinea"
 
 version := "0.0.1"
 
-scalaVersion := "2.13.0"
+val scalineaVersion = "0.0.1"
+
+scalaVersion := "2.13.1"
 
 scalacOptions ++= Seq(
   "-deprecation",                      // Emit warning and location for usages of deprecated APIs.
@@ -41,3 +43,11 @@ scalacOptions in (Compile, console) --= Seq("-Ywarn-unused:imports", "-Xfatal-wa
 
 libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.8"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.8" % "test"
+libraryDependencies += "com.lihaoyi" %% "pprint" % "0.5.9"
+
+
+
+//enablePlugins(JavaAppPackaging)
+
+assemblyJarName in assembly := s"scalinea-assembly-$scalineaVersion.jar"
+
