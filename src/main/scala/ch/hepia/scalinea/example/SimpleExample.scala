@@ -18,13 +18,15 @@ object SimpleExample extends App {
 
   val system = {
     dsl.System.define.constraints(
-      paul | (!paul | paul)
+      //paul | (!paul | paul)
 
-//      (joel & !jl & !paul) | (jl & !joel & !paul) | paul
+      //(joel & !jl & !paul) | (jl & !joel & !paul) | paul
+      //
+      joel | !joel `imply` exactlyOneOf(joel, jl, paul, seb)
 
 
     ).maximize(
-      paul
+      joel
     ).build
   }
 

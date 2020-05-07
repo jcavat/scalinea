@@ -52,18 +52,18 @@ case class Mult( lhs: Expr, rhs: Expr ) extends Expr
 sealed trait BExpr extends Constr {
   import BExpr.CNF
   private def merge( lhs: CNF, rhs: CNF ): CNF = {
-    val vars2: Map[BVar, Boolean] = util.MapUtil.mergeOpt( lhs.vars, rhs.vars, { (b1:Boolean, b2:Boolean) =>
-      if( b1 == b2 ) Some(b1)
-      else None
-    })
-    CNF( vars2 )
+    val merger: (Sign,Sign) => Option[Sign] = {
+      case (Sign.Negate, Sign.Negate) => Some(Sign.Negate)
+      case (Sign.Positive, Sign.Positive) => Some(Sign.Positive)
+      case _ => Some(Sign.Tautology)
+    }
+    val vars: Map[BVar, Sign] = util.MapUtil.mergeOpt(lhs.vars, rhs.vars, merger)
+    CNF( vars )
   }
   def normalize: List[CNF] = {
-    pprint.pprintln("*"*30)
-    pprint.pprintln(this)
-    val res = this match {
-      case b:BVar => List( CNF.single(b, sign = true) )
-      case Not(b:BVar) => List( CNF.single(b, sign = false) )
+    this match {
+      case b:BVar => List( CNF.single(b, sign = Sign.Positive) )
+      case Not(b:BVar) => List( CNF.single(b, sign = Sign.Negate) )
       case Not(Not(bexpr)) => bexpr.normalize
       case Not( Or(lhs,rhs) ) => And(Not(lhs),Not(rhs)).normalize
       case Not( And(lhs,rhs) ) => Or(Not(lhs),Not(rhs)).normalize
@@ -74,36 +74,28 @@ sealed trait BExpr extends Constr {
       ).normalize
       case Implies(lhs,rhs) => Or(Not(lhs),rhs).normalize
       case Iff(lhs,rhs) => And(Implies(lhs,rhs),Implies(rhs,lhs)).normalize
-      case And( lhs, rhs ) => {
-        val r1 = lhs.normalize
-        val r2 = rhs.normalize
-        val res = r1 ++ r2
-        res
-      } //TODO: Check not satisfiable
+      case And( lhs, rhs ) => lhs.normalize ++ rhs.normalize //TODO: Check not satisfiable
       case Or( And(x,y), z ) => And( Or(x,z), Or(y,z) ).normalize
       case Or( x, And(y,z) ) => And( Or(x,y), Or(x,z) ).normalize
       case Or( lhs, rhs ) => {
         val lhsN: List[CNF] = lhs.normalize
         val rhsN: List[CNF] = rhs.normalize
-        val res = for {
+        for {
           l <- lhsN
           r <- rhsN
         } yield merge(l,r)
-
-        // If tautology, result could be empty
-        res.filter( cnf => !cnf.vars.isEmpty)
       }
     }
-    res
   }
 
   private def toNumeric: List[Constr] = {
     import Ops._
     normalize.map { cnf =>
-      val vars: Map[BVar, Boolean] = cnf.vars
+      val vars: Map[BVar, Sign] = cnf.vars
       val lhs: Expr = vars.map {
-        case (v,true) => v
-        case (v,false) => 1-v
+        case (v,Sign.Positive) => v
+        case (v,Sign.Negate) => 1-v
+        case (v,_) => 1-v + v //TODO: (v-v)
       }.reduce( _ + _ )
 
       lhs >= 1
@@ -114,10 +106,18 @@ sealed trait BExpr extends Constr {
     toNumeric.flatMap( _.toClause )
   }
 }
+
+sealed trait Sign
+object Sign {
+  case object Positive extends Sign
+  case object Negate extends Sign
+  case object Tautology extends Sign
+}
+
 object BExpr {
-  case class CNF( vars: Map[BVar,Boolean] )
+  case class CNF( vars: Map[BVar,Sign] )
   object CNF {
-    def single( bvar: BVar, sign: Boolean ) = CNF( Map(bvar->sign) )
+    def single( bvar: BVar, sign: Sign ) = CNF( Map(bvar->sign) )
   }
 }
 
