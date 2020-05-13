@@ -202,17 +202,32 @@ object Ops {
   }
 
   // TODO: Add first elem in a list
-  def sum( exprs: Iterable[Expr] ): Expr = exprs.reduceLeft( _ + _ )
+  def sum( exprs: Iterable[Expr] ): Expr = exprs.reduceLeftOption( _ + _ ).getOrElse(Const(0))
   def sum[T]( exprs: Iterable[T] )(f: T => Expr): Expr = exprs.map(f).reduceLeft( _ + _ )
+
   def forAll[T](vs: Iterable[T])(f: T => dsl.Constr): Iterable[dsl.Constr] = vs.map(f)
+  def forAll_[T](vs: Iterable[T])(f: T => Iterable[dsl.Constr]): Iterable[dsl.Constr] = vs.flatMap(f)
+
   def or( exprs: Iterable[BExpr] ): BExpr = exprs.reduceLeft( _ | _ )
   def or( exprs: BExpr* ): BExpr = exprs.reduceLeft( _ | _ )
   def and( exprs: Iterable[BExpr] ): BExpr = exprs.reduceLeft( _ & _ )
   def and( exprs: BExpr* ): BExpr = exprs.reduceLeft( _ & _ )
 
+  def allFalse(exprs: Iterable[BExpr] ): BExpr = !or(exprs)
+  def allFalse(exprs: BExpr* ): BExpr = !or(exprs)
+  def allTrue(exprs: Iterable[BExpr] ): BExpr = and(exprs)
+  def allTrue(exprs: BExpr* ): BExpr = and(exprs)
+
+  def exactlyOneOf( bvars: BVar* ): Constr = {
+    sum(bvars) <= 1
+  }
   def exactlyOneOf( exprs: BExpr* ): BExpr = {
-    val e: Seq[BExpr] = exprs.map(bexpr => bexpr & !or(exprs.filter(_ != bexpr)))
-    or(e)
+    if( exprs.size == 1 ) {
+      exprs.head
+    } else {
+      val e: Seq[BExpr] = exprs.map(bexpr => bexpr & !or(exprs.filter(_ != bexpr)))
+      or(e)
+    }
   }
 
   /*
