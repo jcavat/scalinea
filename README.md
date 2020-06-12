@@ -42,12 +42,29 @@ solver.solve(system) match {
 }
 ```
 
+## News
+
+DSL for binary variables is now possible
+
+```
+  val system = {
+    dsl.System.define.constraints(
+
+      x | y `imply` exactlyOneOf(z1, z2 | z3, z1 & z2, z4 `iif` z5)
+      ...
+
+    ).maximize(
+      ...
+    ).build
+```
+
 ## Next step
 
-- improve DSL for binary vars such as material implication, iif...
 - add new solvers (glpk, lp_solve, Cplex)
+- improve existing solver solution parsing with explicit status (Unboundable, Unfeasible, ...)
 - add more tests and more examples
 - create documentation
+- publish the first beta release :)
 
 
 
