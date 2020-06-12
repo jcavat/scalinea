@@ -6,7 +6,7 @@ version := "0.0.1"
 
 val scalineaVersion = "0.0.1"
 
-scalaVersion := "2.13.1"
+scalaVersion := "2.13.2"
 
 scalacOptions ++= Seq(
   "-deprecation",                      // Emit warning and location for usages of deprecated APIs.
