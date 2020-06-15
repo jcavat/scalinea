@@ -46,10 +46,12 @@ solver.solve(system) match {
 
 DSL for binary variables is now possible
 
-```
+```scala
   val system = {
     dsl.System.define.constraints(
-
+      x `imply` z,
+      z `iif` w,
+      z & w,
       x | y `imply` exactlyOneOf(z1, z2 | z3, z1 & z2, z4 `iif` z5)
       ...
 
