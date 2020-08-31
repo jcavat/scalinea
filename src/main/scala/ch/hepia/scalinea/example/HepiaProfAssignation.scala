@@ -26,7 +26,7 @@ class Manager() {
 
   private val profs: mutable.ListBuffer[ProfId] = mutable.ListBuffer()
   private val lectures: mutable.ListBuffer[LectureId] = mutable.ListBuffer()
-  private val days = mutable.ListBuffer()
+  private val periods: mutable.ListBuffer[PeriodId] = mutable.ListBuffer()
 
   def addIncompatibilities(prof1: ProfId, prof2: ProfId): Unit = {
     def addIncompatibilities(prof1: ProfId, prof2: ProfId): Unit = {
@@ -42,7 +42,7 @@ class Manager() {
   def addIncompatibilities(lecture1: LectureId, lecture2: LectureId): Unit = {
     def addIncompatibilities(lecture1: LectureId, lecture2: LectureId): Unit = {
       incompatLectures.updateWith(lecture1){
-        case Some(profs) => Some(profs.append(lecture2))
+        case Some(lectures) => Some(lectures.append(lecture2))
         case None => Some(mutable.Buffer(lecture2))
       }
     }
@@ -79,10 +79,13 @@ class Manager() {
 
   def add(prof: ProfId): Unit = profs.addOne(prof)
 
+  def add(period: PeriodId): Unit = periods.addOne(period)
+
   def add[T](as: List[T])(implicit tag: TypeTag[T]): Unit = tag.tpe match {
     /* trick to override a generic argument, avoiding type erasure */
     case t if t =:= typeOf[ProfId] => as.asInstanceOf[List[ProfId]].foreach( add )
     case t if t =:= typeOf[LectureId] => as.asInstanceOf[List[LectureId]].foreach( add )
+    case t if t =:= typeOf[PeriodId] => as.asInstanceOf[List[PeriodId]].foreach( add )
     case _ => println("none")
   }
 
