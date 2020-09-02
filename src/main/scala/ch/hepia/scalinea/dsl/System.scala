@@ -2,7 +2,7 @@ package ch.hepia.scalinea
 package dsl
 
 import Ops._
-import ch.hepia.scalinea.clause.{Terms, Vars}
+import ch.hepia.scalinea.clause.{Clause, Terms, Vars}
 import ch.hepia.scalinea.format.{Output, Success}
 import ch.hepia.scalinea.solver._
 
@@ -27,6 +27,8 @@ object System {
     gopt: Option[GoalTerms]
   ) {
 
+    private val vars: collection.mutable.Set[Var] = collection.mutable.Set()
+
     def constraints( cs: dsl.Constr* ): SysState[HasConstr,G] = {
       copy( constr = constr ++ cs.toList )
     }
@@ -44,23 +46,17 @@ object System {
 
     def build( implicit ev0: C =:= HasConstr, ev1: G =:= HasGoal ): clause.System = {
       require( ev0 != null && ev1 != null ) //Always true in order to remove warning
-      println("a")
       val clauses = constr.flatMap(_.toClause)
-      println("b")
-      val varsObjective: Seq[Vars] = gopt.get match {
-        case Minimize(terms) => terms.sortedVars
-        case Maximize(terms) => terms.sortedVars
+      val varsOnObjectiveTerm: collection.mutable.Set[Vars] = gopt.get match {
+        case Minimize(terms) => terms.sortedVars.to(collection.mutable.Set)
+        case Maximize(terms) => terms.sortedVars.to(collection.mutable.Set)
       }
-      var i = 0
-      val vars: List[clause.Var] = for {
-        clause <- clauses
-        _ = println( i.toString + "/" + clauses.size.toString)
-        _ = i += 1
-        u = varsObjective :++ clause.terms.sortedVars //TODO: Find a different way to store all the variables
-        sortedVars <- u
-        v <- sortedVars.sortedVar
-      } yield v
-      clause.System( clauses, gopt.get, vars.toSet )
+
+      // Use of mutable.Set for performance reasons
+      val allVars: collection.mutable.Set[clause.Var] = collection.mutable.Set[clause.Var]()
+      allVars.addAll(varsOnObjectiveTerm.flatMap(_.sortedVar))
+      clauses.foreach( clause => allVars.addAll(clause.vars) )
+      clause.System( clauses, gopt.get, allVars.toSet )
     }
   }
   object SysState {

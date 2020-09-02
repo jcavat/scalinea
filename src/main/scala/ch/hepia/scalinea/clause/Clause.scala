@@ -77,7 +77,7 @@ case class ContinuousVar(symbol: String, minBound: Option[Double] = None, maxBou
 case class Vars(value: Map[Var, Exponent]) {
   import Vars._
 
-  def sortedVar = value.keySet.toList.sortBy( _.symbol )
+  lazy val sortedVar = value.keySet.toList.sortBy( _.symbol )
 
   def isLinear = this == constant || ( value.size == 1 && value.head._2 == Exponent.one )
 
@@ -183,7 +183,9 @@ object Terms {
 
 }
 
-case class Clause(terms: Terms, sign: Sign)
+case class Clause(terms: Terms, sign: Sign){
+  lazy val vars: Set[Var] = terms.sortedVars.flatMap( _.sortedVar ).toSet
+}
 object Clause {
   implicit val canShow = Show.instance[Clause]{
     case Clause(ts,sign) =>
