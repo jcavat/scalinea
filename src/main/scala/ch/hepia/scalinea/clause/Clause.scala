@@ -131,7 +131,7 @@ object Vars {
 }
 
 case class Terms(terms: Map[Vars, NonZeroConstant]) {
-  def sortedVars = terms.keySet.toList.sorted
+  lazy val sortedVars = terms.keySet.toList.sorted
 
   def +(that: Terms): Terms = {
     val termMap = MapUtil.mergeOpt[Vars,NonZeroConstant](this.terms, that.terms, _+_ )

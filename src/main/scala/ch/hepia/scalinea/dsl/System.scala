@@ -2,7 +2,7 @@ package ch.hepia.scalinea
 package dsl
 
 import Ops._
-import ch.hepia.scalinea.clause.Terms
+import ch.hepia.scalinea.clause.{Terms, Vars}
 import ch.hepia.scalinea.format.{Output, Success}
 import ch.hepia.scalinea.solver._
 
@@ -44,14 +44,20 @@ object System {
 
     def build( implicit ev0: C =:= HasConstr, ev1: G =:= HasGoal ): clause.System = {
       require( ev0 != null && ev1 != null ) //Always true in order to remove warning
+      println("a")
       val clauses = constr.flatMap(_.toClause)
-      val varsObjective = gopt.get match {
+      println("b")
+      val varsObjective: Seq[Vars] = gopt.get match {
         case Minimize(terms) => terms.sortedVars
         case Maximize(terms) => terms.sortedVars
       }
+      var i = 0
       val vars: List[clause.Var] = for {
         clause <- clauses
-        sortedVars <- varsObjective :++ clause.terms.sortedVars //TODO: Find a different way to store all the variables
+        _ = println( i.toString + "/" + clauses.size.toString)
+        _ = i += 1
+        u = varsObjective :++ clause.terms.sortedVars //TODO: Find a different way to store all the variables
+        sortedVars <- u
         v <- sortedVars.sortedVar
       } yield v
       clause.System( clauses, gopt.get, vars.toSet )

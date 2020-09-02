@@ -43,6 +43,8 @@ scalacOptions in (Compile, console) --= Seq("-Ywarn-unused:imports", "-Xfatal-wa
 
 libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.8"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.8" % "test"
+libraryDependencies += "org.apache.poi" % "poi" % "3.17"
+libraryDependencies += "org.apache.poi" % "poi-ooxml" % "3.17"
 libraryDependencies += "com.lihaoyi" %% "pprint" % "0.5.9"
 
 
