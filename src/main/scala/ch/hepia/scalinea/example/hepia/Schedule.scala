@@ -2,7 +2,7 @@ package SchoolSchedule
 import src.data._
 import ch.hepia.scalinea.dsl.{BVar, Constr, Expr, Ops}
 import ch.hepia.scalinea.format.{Output, Success}
-import ch.hepia.scalinea.solver.{CbcLpSolver, LPResult, Solution, Solver}
+import ch.hepia.scalinea.solver.{CbcLpSolver, GurobiSolver, LPResult, Solution, Solver}
 import ch.hepia.scalinea.dsl
 import ch.hepia.scalinea.dsl.Ops._
 
@@ -176,7 +176,7 @@ class Schedule {
 
     val buildDuration = (System.nanoTime - t0) / 1e9d
     println(s"System built in $buildDuration s")
-    val solver: Solver = CbcLpSolver
+    val solver: Solver = GurobiSolver
     //OutputHandler.hide
     println("System solving start")
     val result: Output[LPResult] = solver.solve(system)
